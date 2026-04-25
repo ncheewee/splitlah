@@ -1,0 +1,2 @@
+# splitlah
+Expense splitting app
