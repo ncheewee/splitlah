@@ -65,7 +65,6 @@ button{font:inherit;border:0;cursor:pointer;border-radius:var(--radius-sm)}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-secondary{background:var(--surface2);color:var(--text)}
 .btn-outline{background:transparent;border:1.5px solid var(--border);color:var(--text);padding:8px 12px}
-.btn-ghost{background:transparent;color:var(--text2)}
 .btn-danger{background:var(--neg-light);color:var(--neg)}
 .btn-sm{padding:5px 10px;font-size:.78rem;border-radius:6px}
 .btn-wide{width:100%}
@@ -129,7 +128,6 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .good{color:var(--pos)}
 .bad{color:var(--neg)}
 .grow{flex:1}
-.divider{border:0;border-top:1px solid var(--border);margin:12px 0}
 
 /* ── HOME TRIP CARD ── */
 .trip-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:13px 14px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;margin-bottom:10px;cursor:pointer;transition:box-shadow .15s,transform .1s}
@@ -162,7 +160,7 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .stat-val{font-size:1.35rem;font-weight:700;color:var(--primary)}
 .stat-label{font-size:.72rem;color:var(--text2);margin-top:3px}
 .chart-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:14px;box-shadow:var(--shadow);margin-bottom:12px}
-.chart-title{font-size:.82rem;font-weight:600;color:var(--text2);margin-bottom:12px;letter-spacing:.02em;text-transform:uppercase}
+.chart-title{font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:12px;letter-spacing:.04em;text-transform:uppercase}
 
 /* ── SETTINGS ── */
 .set-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--border);gap:12px}
@@ -191,7 +189,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <body>
 <div class="app">
 
-  <!-- ═══════════════════════════════ SETUP SCREEN ═══════════════════════════════ -->
+  <!-- ══ SETUP ══ -->
   <div id="screen-setup" class="hide">
     <div class="header">
       <div class="logo">SplitLah</div>
@@ -201,7 +199,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="card mt8">
         <div class="bold" style="font-size:1rem;margin-bottom:14px">Your Details</div>
         <div class="fg"><label class="label">Your Name</label><input id="meName" class="field" placeholder="e.g. Chee Wee"></div>
-        <div class="fg"><label class="label">Worker API URL</label><input id="apiUrl" class="field" placeholder="https://splitlah-api.xxx.workers.dev"><div class="small muted mt4">Leave blank to use offline mode.</div></div>
+        <div class="fg">
+          <label class="label">Worker API URL</label>
+          <input id="apiUrl" class="field" placeholder="https://splitlah-api.ncheewee.workers.dev">
+          <div class="small muted mt4">Leave blank to use offline-only mode.</div>
+        </div>
         <div class="fg"><label class="label">ImageKit Public Key <span class="pill pill-gray">optional</span></label><input id="ikPublicKey" class="field" placeholder="public_xxxxxxxxx"></div>
         <div class="fg"><label class="label">ImageKit URL Endpoint</label><input id="ikEndpoint" class="field" placeholder="https://ik.imagekit.io/yourname"></div>
         <button class="btn btn-primary btn-wide mt8" onclick="saveSetup()">Save &amp; Continue →</button>
@@ -209,7 +211,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     </div>
   </div>
 
-  <!-- ═══════════════════════════════ HOME SCREEN ═══════════════════════════════ -->
+  <!-- ══ HOME ══ -->
   <div id="screen-home" class="hide">
     <div class="header">
       <div class="header-row">
@@ -218,7 +220,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <div class="logo-sub" id="home-sub">v2.0</div>
         </div>
         <button class="hbtn" onclick="toggleTheme()" id="theme-btn-home">☀ Light</button>
-        <button class="hbtn" onclick="showSetup()">⚙ Setup</button>
+        <button class="hbtn" onclick="showSetup()">⚙</button>
       </div>
     </div>
     <div class="body">
@@ -230,7 +232,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     </div>
   </div>
 
-  <!-- ═══════════════════════════════ TRIP SCREEN ═══════════════════════════════ -->
+  <!-- ══ TRIP ══ -->
   <div id="screen-trip" class="hide">
     <div class="header">
       <div class="header-row">
@@ -251,25 +253,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <button class="tab-btn" onclick="showTab('settings')">Settings</button>
     </div>
 
-    <!-- EXPENSES -->
+    <!-- EXPENSES TAB -->
     <div id="tab-expenses" class="body">
       <button class="btn btn-primary btn-wide" onclick="openExpenseModal()">＋ Add Expense</button>
       <div id="expense-list" class="mt12"></div>
     </div>
 
-    <!-- BALANCES -->
+    <!-- BALANCES TAB -->
     <div id="tab-balances" class="body hide">
       <div id="balance-summary"></div>
       <div id="settle-list"></div>
     </div>
 
-    <!-- MEMBERS -->
+    <!-- MEMBERS TAB -->
     <div id="tab-members" class="body hide">
       <button class="btn btn-secondary btn-wide" onclick="openAddMemberModal()">＋ Add Member</button>
       <div id="member-list" class="mt12"></div>
     </div>
 
-    <!-- DASHBOARD -->
+    <!-- DASHBOARD TAB -->
     <div id="tab-dashboard" class="body hide">
       <div class="stat-grid" id="dash-stats"></div>
       <div class="chart-card">
@@ -286,7 +288,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       </div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- SETTINGS TAB -->
     <div id="tab-settings" class="body hide">
       <div class="card">
         <div class="bold small" style="margin-bottom:12px">Trip Settings</div>
@@ -343,10 +345,9 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
 </div><!-- .app -->
 
-<!-- ════════ TOAST ════════ -->
 <div id="toast" class="toast"></div>
 
-<!-- ════════ MODAL: ADD EXPENSE ════════ -->
+<!-- ══ MODAL: ADD EXPENSE ══ -->
 <div class="modal-overlay" id="modal-expense">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -373,10 +374,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <button class="btn btn-outline btn-sm" onclick="refreshFxRate()">↻ Refresh</button>
       </div>
     </div>
-    <div class="fg">
-      <label class="label">Paid By</label>
-      <select id="e-paid-by" class="field"></select>
-    </div>
+    <div class="fg"><label class="label">Paid By</label><select id="e-paid-by" class="field"></select></div>
     <div class="fg">
       <label class="label">Receipt <span class="pill pill-gray">optional</span></label>
       <input type="file" id="e-receipt" accept="image/*" class="field" style="padding:7px" onchange="onReceiptSelected(this)">
@@ -390,7 +388,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 </div>
 
-<!-- ════════ MODAL: ADD/EDIT MEMBER ════════ -->
+<!-- ══ MODAL: MEMBER ══ -->
 <div class="modal-overlay" id="modal-member">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -411,7 +409,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 </div>
 
-<!-- ════════ MODAL: SETTLEMENT ════════ -->
+<!-- ══ MODAL: SETTLEMENT ══ -->
 <div class="modal-overlay" id="modal-settle">
   <div class="modal">
     <div class="modal-handle"></div>
@@ -424,295 +422,222 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   </div>
 </div>
 
-<!-- ════════ SCRIPTS ════════ -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// CONSTANTS & STATE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const VER = 'v2.0';
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// STATE
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const VER      = 'v2.0';
 const LS_CFG   = 'sl_cfg_v2';
 const LS_TRIPS = 'sl_trips_v2';
 const LS_FX    = 'sl_fx_v2';
-const LS_UID   = 'sl_uid';
 
 const AV_COLORS = ['#085041','#1D9E75','#0F6E56','#5B6BB5','#C05C2C','#7B4BAD','#B88000','#B54064','#2E7DAB'];
 
-let uid    = localStorage[LS_UID] || (localStorage[LS_UID] = 'u_'+crypto.randomUUID());
-let cfg    = safeJSON(localStorage[LS_CFG], {name:'',api:'',ikPublicKey:'',ikEndpoint:'',theme:'light',fontSize:15});
-let trips  = safeJSON(localStorage[LS_TRIPS], {});
-let fxCache= safeJSON(localStorage[LS_FX], {});
-let curCode= null, cur = null;
-let _charts= {}, _settleData=null, _receiptFile=null, _receiptUrl=null, _editMemberId=null;
+let uid     = localStorage.sl_uid || (localStorage.sl_uid = 'u_'+crypto.randomUUID());
+let cfg     = sj(localStorage[LS_CFG],  {name:'',api:'',ikPublicKey:'',ikEndpoint:'',theme:'light',fontSize:15});
+let trips   = sj(localStorage[LS_TRIPS], {});
+let fxCache = sj(localStorage[LS_FX],   {});
+let curCode = null, cur = null;
+let _charts = {}, _settleData = null, _receiptUrl = null, _editMemberId = null;
 let _toastTimer;
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// UTILITIES
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function safeJSON(s, d) { try { return s ? JSON.parse(s) : d; } catch { return d; } }
-function $(id) { return document.getElementById(id); }
-function esc(s) {
-  return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-function fmtSGD(n) { return 'S$'+(+n||0).toFixed(2); }
-function fmtAmt(n, cur) {
-  if(!cur || cur==='SGD') return fmtSGD(n);
-  return cur+' '+(+n||0).toFixed(cur==='JPY'?0:2);
-}
-function fmtDate(iso) {
-  return iso ? new Date(iso).toLocaleDateString('en-SG',{day:'numeric',month:'short'}) : '';
-}
-function initials(name) {
-  return (name||'?').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
-}
-function avColor(id) {
-  let h=0; for(const c of String(id)) h=(h*31+c.charCodeAt(0))&0xffff;
-  return AV_COLORS[h % AV_COLORS.length];
-}
-function uuid() { return crypto.randomUUID(); }
-function randCode() { return Math.random().toString(36).slice(2,8).toUpperCase(); }
+function sj(s,d){ try{return s?JSON.parse(s):d}catch{return d} }
+function $(id){ return document.getElementById(id) }
+function esc(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+function fmtSGD(n){ return 'S$'+(+n||0).toFixed(2) }
+function fmtAmt(n,c){ if(!c||c==='SGD')return fmtSGD(n); return c+' '+(+n||0).toFixed(c==='JPY'?0:2) }
+function fmtDate(iso){ return iso?new Date(iso).toLocaleDateString('en-SG',{day:'numeric',month:'short'}):''}
+function initials(n){ return (n||'?').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase() }
+function avCol(id){ let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))&0xffff;return AV_COLORS[h%AV_COLORS.length] }
+function uuid(){ return crypto.randomUUID() }
+function randCode(){ return Math.random().toString(36).slice(2,8).toUpperCase() }
 
-function toast(msg, err=false) {
+function toast(msg,err=false){
   const el=$('toast');
-  el.textContent=msg;
-  el.style.background=err?'#C93030':'var(--primary)';
-  el.classList.add('show');
-  clearTimeout(_toastTimer);
+  el.textContent=msg; el.style.background=err?'#C93030':'var(--primary)';
+  el.classList.add('show'); clearTimeout(_toastTimer);
   _toastTimer=setTimeout(()=>el.classList.remove('show'),2800);
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // THEME & FONT
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function applyTheme(theme) {
-  cfg.theme = theme;
-  document.documentElement.dataset.theme = theme;
-  const isDark = theme === 'dark';
-  $('toggle-dark') && ($('toggle-dark').checked = isDark);
-  const label = isDark ? '🌙 Dark' : '☀ Light';
-  $('theme-btn-home') && ($('theme-btn-home').textContent = label);
-  $('theme-btn-trip') && ($('theme-btn-trip').textContent = isDark ? '🌙' : '☀');
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function applyTheme(t){
+  cfg.theme=t; document.documentElement.dataset.theme=t;
+  const d=t==='dark';
+  $('toggle-dark')&&($('toggle-dark').checked=d);
+  $('theme-btn-home')&&($('theme-btn-home').textContent=d?'🌙 Dark':'☀ Light');
+  $('theme-btn-trip')&&($('theme-btn-trip').textContent=d?'🌙':'☀');
   saveCfg();
 }
-function toggleTheme() { applyTheme(cfg.theme==='dark'?'light':'dark'); }
-function applyFontSize(sz) {
-  cfg.fontSize = sz;
-  document.documentElement.style.setProperty('--fs', sz+'px');
-  $('font-size-label') && ($('font-size-label').textContent = sz+'px');
-  $('font-slider') && ($('font-slider').value = sz);
+function toggleTheme(){ applyTheme(cfg.theme==='dark'?'light':'dark') }
+function applyFontSize(sz){
+  cfg.fontSize=sz;
+  document.documentElement.style.setProperty('--fs',sz+'px');
+  $('font-size-label')&&($('font-size-label').textContent=sz+'px');
+  $('font-slider')&&($('font-slider').value=sz);
   saveCfg();
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // PERSISTENCE
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function saveCfg()  { localStorage[LS_CFG]   = JSON.stringify(cfg); }
-function saveTrips(){ localStorage[LS_TRIPS] = JSON.stringify(trips); }
-function saveFx()   { localStorage[LS_FX]    = JSON.stringify(fxCache); }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function saveCfg()  { localStorage[LS_CFG]  =JSON.stringify(cfg)   }
+function saveTrips(){ localStorage[LS_TRIPS]=JSON.stringify(trips)  }
+function saveFx()   { localStorage[LS_FX]  =JSON.stringify(fxCache)}
 
-// Normalise member: support old string format
-function normMember(m, id) {
-  if(typeof m === 'string') return { name: m, avatarColor: avColor(id) };
-  return m;
-}
-function getMemberName(id) {
-  if(!cur?.members?.[id]) return '?';
-  return normMember(cur.members[id], id).name || '?';
-}
+function normM(m,id){ return typeof m==='string'?{name:m,avatarColor:avCol(id)}:m }
+function getMName(id){ if(!cur?.members?.[id])return'?'; return normM(cur.members[id],id).name||'?' }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // API
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-async function apiCall(path, method='GET', body) {
-  if(!cfg.api) throw new Error('No API configured');
-  const r = await fetch(cfg.api+path, {
-    method, headers:{'Content-Type':'application/json'},
-    body: body ? JSON.stringify(body) : undefined
-  });
-  const j = await r.json().catch(()=>({}));
-  if(!r.ok) throw new Error(j.error||'API error '+r.status);
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+async function apiCall(path,method='GET',body){
+  if(!cfg.api)throw new Error('No API configured');
+  const r=await fetch(cfg.api+path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(j.error||'API '+r.status);
   return j;
 }
-
-async function pushTrip(t) {
-  t.updated_at = new Date().toISOString();
-  trips[t.code] = t;
-  saveTrips();
-  if(cfg.api) {
-    try { await apiCall('/trips/'+t.code,'PUT',t); }
-    catch(e) { /* offline-graceful */ }
-  }
+async function pushTrip(t){
+  t.updated_at=new Date().toISOString(); trips[t.code]=t; saveTrips();
+  if(cfg.api){ try{await apiCall('/trips/'+t.code,'PUT',t)}catch{} }
 }
-
-async function pullTrip(code) {
-  const j = await apiCall('/trips/'+code);
-  if(!j.trip) throw new Error('Trip not found');
-  trips[code] = j.trip;
-  saveTrips();
-  return j.trip;
+async function pullTrip(code){
+  const j=await apiCall('/trips/'+code);
+  if(!j.trip)throw new Error('Trip not found');
+  trips[code]=j.trip; saveTrips(); return j.trip;
 }
-
-async function syncTrip() {
-  if(!curCode||!cfg.api) return toast('No API configured');
+async function syncTrip(){
+  if(!curCode||!cfg.api)return toast('No API configured');
   toast('Syncing…');
-  try {
-    cur = await pullTrip(curCode);
-    renderTripMeta();
-    renderActiveTab();
-    toast('Synced ✓');
-  } catch(e) { toast('Sync failed: '+e.message, true); }
+  try{ cur=await pullTrip(curCode); renderTripMeta(); renderActiveTab(); toast('Synced ✓') }
+  catch(e){ toast('Sync failed: '+e.message,true) }
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // NAVIGATION
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function showScreen(id) {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function showScreen(id){
   ['screen-setup','screen-home','screen-trip'].forEach(s=>$(s).classList.add('hide'));
   $(id).classList.remove('hide');
 }
-function showSetup() {
-  $('meName').value = cfg.name;
-  $('apiUrl').value = cfg.api;
-  $('ikPublicKey').value = cfg.ikPublicKey||'';
-  $('ikEndpoint').value = cfg.ikEndpoint||'';
+function showSetup(){
+  $('meName').value=cfg.name; $('apiUrl').value=cfg.api;
+  $('ikPublicKey').value=cfg.ikPublicKey||''; $('ikEndpoint').value=cfg.ikEndpoint||'';
   showScreen('screen-setup');
 }
-function saveSetup() {
-  cfg.name = $('meName').value.trim() || 'Me';
-  cfg.api  = ($('apiUrl').value||'').trim().replace(/\/$/,'');
-  cfg.ikPublicKey = $('ikPublicKey').value.trim();
-  cfg.ikEndpoint  = ($('ikEndpoint').value||'').trim().replace(/\/$/,'');
-  saveCfg();
-  goHome();
+function saveSetup(){
+  cfg.name=$('meName').value.trim()||'Me';
+  cfg.api=($('apiUrl').value||'').trim().replace(/\/$/,'');
+  cfg.ikPublicKey=$('ikPublicKey').value.trim();
+  cfg.ikEndpoint=($('ikEndpoint').value||'').trim().replace(/\/$/,'');
+  saveCfg(); goHome();
 }
-function goHome() {
-  curCode=null; cur=null;
-  renderHome();
-  showScreen('screen-home');
-}
-function openTrip(code) {
-  curCode = code;
-  cur = trips[code];
-  cur.settlements = cur.settlements||[];
-  cur.expenses = cur.expenses||[];
-  cur.members = cur.members||{};
-  showScreen('screen-trip');
-  showTab('expenses');
-  renderTripMeta();
+function goHome(){ curCode=null;cur=null; renderHome(); showScreen('screen-home') }
+function openTrip(code){
+  curCode=code; cur=trips[code];
+  cur.settlements=cur.settlements||[]; cur.expenses=cur.expenses||[]; cur.members=cur.members||{};
+  showScreen('screen-trip'); showTab('expenses'); renderTripMeta();
 }
 
-let _activeTab = 'expenses';
-function showTab(name) {
-  _activeTab = name;
-  ['expenses','balances','members','dashboard','settings'].forEach(t=>
-    $('tab-'+t).classList.toggle('hide', t!==name)
-  );
+let _activeTab='expenses';
+function showTab(name){
+  _activeTab=name;
+  ['expenses','balances','members','dashboard','settings'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==name));
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    const tabs=['expenses','balances','members','dashboard','settings'];
-    b.classList.toggle('active', tabs[i]===name);
+    b.classList.toggle('active',['expenses','balances','members','dashboard','settings'][i]===name);
   });
   renderActiveTab();
 }
-function renderActiveTab() {
-  if(_activeTab==='expenses')  renderExpenses();
-  if(_activeTab==='balances')  renderBalancesTab();
-  if(_activeTab==='members')   renderMembers();
-  if(_activeTab==='dashboard') renderDashboard();
-  if(_activeTab==='settings')  renderSettings();
+function renderActiveTab(){
+  if(_activeTab==='expenses') renderExpenses();
+  if(_activeTab==='balances') renderBalancesTab();
+  if(_activeTab==='members')  renderMembers();
+  if(_activeTab==='dashboard')renderDashboard();
+  if(_activeTab==='settings') renderSettings();
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // HOME
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function renderHome() {
-  $('home-sub').textContent = cfg.name ? cfg.name+' · '+VER : VER;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderHome(){
+  $('home-sub').textContent=cfg.name?cfg.name+' · '+VER:VER;
   applyTheme(cfg.theme||'light');
-  const arr = Object.values(trips).sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||''));
-  const el = $('trip-list');
-  if(!arr.length) {
-    el.innerHTML=`<div class="empty"><div class="empty-icon">✈️</div><div class="empty-title">No trips yet</div><div class="empty-msg">Create a trip or join with a trip code.</div></div>`;
+  const arr=Object.values(trips).sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||''));
+  const el=$('trip-list');
+  if(!arr.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">✈️</div><div class="empty-title">No trips yet</div><div class="empty-msg">Create a trip or join with a code.</div></div>`;
     return;
   }
-  el.innerHTML = arr.map(t=>{
-    const ids = Object.keys(t.members||{});
-    const total = (t.expenses||[]).reduce((s,e)=>s+(e.amount||0),0);
-    const avatarStack = ids.slice(0,4).map(id=>{
-      const m = normMember(t.members[id], id);
-      return `<span class="avatar" style="background:${avColor(id)}">${esc(initials(m.name))}</span>`;
+  el.innerHTML=arr.map(t=>{
+    const ids=Object.keys(t.members||{});
+    const total=(t.expenses||[]).reduce((s,e)=>s+(e.amount||0),0);
+    const stack=ids.slice(0,4).map(id=>{
+      const m=normM(t.members[id],id);
+      return`<span class="avatar" style="background:${avCol(id)}">${esc(initials(m.name))}</span>`;
     }).join('');
-    const pending = (t.settlements||[]).filter(s=>s.status!=='paid').length;
-    return `<div class="trip-card" onclick="openTrip('${esc(t.code)}')">
+    return`<div class="trip-card" onclick="openTrip('${esc(t.code)}')">
       <div class="trip-icon">✈️</div>
       <div style="flex:1;min-width:0">
         <div class="trip-name">${esc(t.name)}</div>
-        <div class="trip-meta">${esc(t.code)} · ${ids.length} members · ${fmtSGD(total)}${pending?' · <span style="color:var(--neg)">'+pending+' pending</span>':''}</div>
+        <div class="trip-meta">${esc(t.code)} · ${ids.length} members · ${fmtSGD(total)}</div>
       </div>
-      <div class="av-stack">${avatarStack}</div>
+      <div class="av-stack">${stack}</div>
     </div>`;
   }).join('');
 }
 
-async function promptNewTrip() {
-  const name = prompt('Trip name?');
-  if(!name?.trim()) return;
-  const t = {
-    id: uuid(), code: randCode(), name: name.trim(), currency:'SGD',
-    members: { [uid]: { name: cfg.name||'Me', avatarColor: avColor(uid) } },
-    expenses:[], settlements:[], updated_at: new Date().toISOString()
-  };
-  await pushTrip(t);
-  openTrip(t.code);
+async function promptNewTrip(){
+  const name=prompt('Trip name?'); if(!name?.trim())return;
+  const t={id:uuid(),code:randCode(),name:name.trim(),currency:'SGD',
+    members:{[uid]:{name:cfg.name||'Me',avatarColor:avCol(uid)}},
+    expenses:[],settlements:[],updated_at:new Date().toISOString()};
+  await pushTrip(t); openTrip(t.code);
 }
-
-async function promptJoinTrip() {
-  const code = (prompt('Enter trip code:')||'').trim().toUpperCase();
-  if(!code) return;
-  if(trips[code]) return openTrip(code);
-  try {
-    toast('Looking up trip…');
-    const t = await pullTrip(code);
-    if(!t.members[uid]) {
-      t.members[uid] = { name: cfg.name||'Me', avatarColor: avColor(uid) };
-      await pushTrip(t);
-    }
+async function promptJoinTrip(){
+  const code=(prompt('Enter trip code:')||'').trim().toUpperCase(); if(!code)return;
+  if(trips[code])return openTrip(code);
+  try{
+    toast('Looking up…');
+    const t=await pullTrip(code);
+    if(!t.members[uid]){t.members[uid]={name:cfg.name||'Me',avatarColor:avCol(uid)};await pushTrip(t);}
     openTrip(code);
-  } catch(e) { toast('Not found: '+e.message, true); }
+  }catch(e){toast('Not found: '+e.message,true)}
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // TRIP META
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function renderTripMeta() {
-  if(!cur) return;
-  $('trip-header-name').textContent = cur.name;
-  $('trip-header-meta').textContent =
-    cur.code+' · '+Object.keys(cur.members).length+' members · '+(cur.expenses||[]).length+' expenses · '+VER;
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderTripMeta(){
+  if(!cur)return;
+  $('trip-header-name').textContent=cur.name;
+  $('trip-header-meta').textContent=cur.code+' · '+Object.keys(cur.members).length+' members · '+(cur.expenses||[]).length+' expenses · '+VER;
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // EXPENSES
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function renderExpenses() {
-  const list = $('expense-list');
-  const exps = (cur.expenses||[]).slice().reverse();
-  if(!exps.length) {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderExpenses(){
+  const list=$('expense-list');
+  const exps=(cur.expenses||[]).slice().reverse();
+  if(!exps.length){
     list.innerHTML=`<div class="empty mt8"><div class="empty-icon">🧾</div><div class="empty-title">No expenses yet</div><div class="empty-msg">Tap "+ Add Expense" to get started.</div></div>`;
     return;
   }
-  const nMembers = Object.keys(cur.members||{}).length || 1;
-  list.innerHTML = exps.map(e=>{
-    const payer = getMemberName(e.paidBy);
-    const isFx = e.currency && e.currency !== 'SGD';
-    const amtMain = isFx ? fmtAmt(e.originalAmount||e.amount, e.currency) : fmtSGD(e.amount);
-    const amtSub  = isFx ? '≈ '+fmtSGD(e.amount) : '';
-    const perPax  = fmtSGD((e.amount||0)/nMembers)+'/pax';
-    return `<div class="exp-item">
+  const n=Math.max(Object.keys(cur.members||{}).length,1);
+  list.innerHTML=exps.map(e=>{
+    const isFx=e.currency&&e.currency!=='SGD';
+    const amtMain=isFx?fmtAmt(e.originalAmount||e.amount,e.currency):fmtSGD(e.amount);
+    const amtSub=isFx?'≈ '+fmtSGD(e.amount):'';
+    return`<div class="exp-item">
       <div class="exp-icon">🧾</div>
       <div style="flex:1;min-width:0">
         <div class="exp-desc">${esc(e.desc)}</div>
-        <div class="exp-meta">Paid by ${esc(payer)} · ${fmtDate(e.at)} · ${perPax}</div>
-        ${e.receiptUrl?`<a href="${esc(e.receiptUrl)}" target="_blank" class="small" style="color:var(--accent);margin-top:3px;display:inline-block">📷 View receipt</a>`:''}
+        <div class="exp-meta">Paid by ${esc(getMName(e.paidBy))} · ${fmtDate(e.at)} · ${fmtSGD((e.amount||0)/n)}/pax</div>
+        ${e.receiptUrl?`<a href="${esc(e.receiptUrl)}" target="_blank" class="small" style="color:var(--accent);margin-top:3px;display:inline-block">📷 Receipt</a>`:''}
       </div>
       <div style="flex-shrink:0;text-align:right">
         <div class="exp-amt-main">${esc(amtMain)}</div>
@@ -723,559 +648,369 @@ function renderExpenses() {
   }).join('');
 }
 
-function openExpenseModal() {
-  $('e-paid-by').innerHTML = Object.entries(cur.members||{}).map(([id,m])=>{
-    const nm = normMember(m, id).name;
-    return `<option value="${esc(id)}"${id===uid?' selected':''}>${esc(nm)}</option>`;
+function openExpenseModal(){
+  $('e-paid-by').innerHTML=Object.entries(cur.members||{}).map(([id,m])=>{
+    const nm=normM(m,id).name;
+    return`<option value="${esc(id)}"${id===uid?' selected':''}>${esc(nm)}</option>`;
   }).join('');
-  $('e-desc').value=''; $('e-orig-amt').value='';
-  $('e-currency').value = cur.currency||'SGD';
-  $('e-fx-rate').value=''; $('e-sgd-amt').value='';
-  $('fx-row').classList.add('hide');
-  $('receipt-preview').style.display='none';
-  $('upload-status').textContent='';
-  _receiptFile=null; _receiptUrl=null;
-  openModal('modal-expense');
-  onCurrencyChange();
+  $('e-desc').value='';$('e-orig-amt').value='';$('e-currency').value=cur.currency||'SGD';
+  $('e-fx-rate').value='';$('e-sgd-amt').value='';$('fx-row').classList.add('hide');
+  $('receipt-preview').style.display='none';$('upload-status').textContent='';
+  _receiptUrl=null; openModal('modal-expense'); onCurrencyChange();
 }
 
-async function onCurrencyChange() {
-  const c = $('e-currency').value;
-  if(c==='SGD') { $('fx-row').classList.add('hide'); return; }
-  $('fx-row').classList.remove('hide');
-  await fetchFxRate(c);
+async function onCurrencyChange(){
+  const c=$('e-currency').value;
+  if(c==='SGD'){$('fx-row').classList.add('hide');return;}
+  $('fx-row').classList.remove('hide'); await fetchFxRate(c);
 }
 
-async function fetchFxRate(fromCur) {
-  $('fx-status').textContent = 'Fetching rate…';
-  const key = fromCur+'_SGD';
-  const cached = fxCache[key];
-  if(cached && Date.now()-cached.ts < 86400000) {
-    $('e-fx-rate').value = cached.rate.toFixed(4);
-    $('fx-status').textContent = `1 ${fromCur} = ${cached.rate.toFixed(4)} SGD (cached)`;
-    updateFxConvert();
-    return cached.rate;
+async function fetchFxRate(from){
+  $('fx-status').textContent='Fetching rate…';
+  const key=from+'_SGD', cached=fxCache[key];
+  if(cached&&Date.now()-cached.ts<86400000){
+    $('e-fx-rate').value=cached.rate.toFixed(4);
+    $('fx-status').textContent=`1 ${from} = ${cached.rate.toFixed(4)} SGD (cached)`;
+    updateFxConvert(); return cached.rate;
   }
-  try {
-    const res = await fetch(`https://api.frankfurter.app/latest?from=${fromCur}&to=SGD`);
-    if(!res.ok) throw new Error('FX API '+res.status);
-    const data = await res.json();
-    const rate = data.rates?.SGD;
-    if(!rate) throw new Error('SGD rate missing');
-    fxCache[key] = { rate, ts: Date.now() };
-    saveFx();
-    $('e-fx-rate').value = rate.toFixed(4);
-    $('fx-status').textContent = `1 ${fromCur} = ${rate.toFixed(4)} SGD (live · ${data.date})`;
-    updateFxConvert();
-    return rate;
-  } catch(e) {
-    $('fx-status').textContent = 'Rate unavailable — enter manually';
-  }
+  try{
+    const res=await fetch(`https://api.frankfurter.app/latest?from=${from}&to=SGD`);
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    const rate=data.rates?.SGD; if(!rate)throw new Error('no SGD rate');
+    fxCache[key]={rate,ts:Date.now()}; saveFx();
+    $('e-fx-rate').value=rate.toFixed(4);
+    $('fx-status').textContent=`1 ${from} = ${rate.toFixed(4)} SGD (live · ${data.date})`;
+    updateFxConvert(); return rate;
+  }catch(e){$('fx-status').textContent='Rate unavailable — enter manually'}
 }
 
-async function refreshFxRate() {
-  const c = $('e-currency').value;
-  if(c==='SGD') return;
-  delete fxCache[c+'_SGD']; saveFx();
-  await fetchFxRate(c);
+async function refreshFxRate(){
+  const c=$('e-currency').value; if(c==='SGD')return;
+  delete fxCache[c+'_SGD']; saveFx(); await fetchFxRate(c);
 }
 
-function updateFxConvert() {
-  const amt  = parseFloat($('e-orig-amt').value)||0;
-  const rate = parseFloat($('e-fx-rate').value)||0;
-  $('e-sgd-amt').value = (amt&&rate) ? (amt*rate).toFixed(2) : '';
+function updateFxConvert(){
+  const a=parseFloat($('e-orig-amt').value)||0, r=parseFloat($('e-fx-rate').value)||0;
+  $('e-sgd-amt').value=(a&&r)?(a*r).toFixed(2):'';
 }
 
-async function onReceiptSelected(input) {
-  const file = input.files[0];
-  if(!file) return;
-  _receiptFile = file;
-  const reader = new FileReader();
-  reader.onload = e => { $('receipt-preview').src=e.target.result; $('receipt-preview').style.display='block'; };
+async function onReceiptSelected(input){
+  const file=input.files[0]; if(!file)return;
+  const reader=new FileReader();
+  reader.onload=e=>{$('receipt-preview').src=e.target.result;$('receipt-preview').style.display='block'};
   reader.readAsDataURL(file);
-  if(cfg.ikPublicKey && cfg.ikEndpoint) await uploadReceipt(file);
-}
-
-async function uploadReceipt(file) {
-  $('upload-status').textContent = '⏳ Uploading…';
-  try {
-    const fd = new FormData();
-    fd.append('file', file);
-    fd.append('fileName', 'receipt_'+Date.now()+'.jpg');
-    fd.append('publicKey', cfg.ikPublicKey);
-    const res = await fetch('https://upload.imagekit.io/api/v1/files/upload', { method:'POST', body:fd });
-    const j = await res.json();
-    if(j.url) { _receiptUrl = j.url; $('upload-status').textContent = '✅ Uploaded'; }
-    else throw new Error(j.message||'Upload failed');
-  } catch(e) {
-    $('upload-status').textContent = '⚠️ Upload failed — receipt stored locally';
-    _receiptUrl = $('receipt-preview').src; // fallback: data URL
+  if(cfg.ikPublicKey&&cfg.ikEndpoint){
+    $('upload-status').textContent='⏳ Uploading…';
+    try{
+      const fd=new FormData();
+      fd.append('file',file);fd.append('fileName','receipt_'+Date.now()+'.jpg');fd.append('publicKey',cfg.ikPublicKey);
+      const res=await fetch('https://upload.imagekit.io/api/v1/files/upload',{method:'POST',body:fd});
+      const j=await res.json();
+      if(j.url){_receiptUrl=j.url;$('upload-status').textContent='✅ Uploaded'}
+      else throw new Error(j.message||'failed');
+    }catch(e){
+      $('upload-status').textContent='⚠️ Upload failed — stored locally';
+      _receiptUrl=$('receipt-preview').src;
+    }
   }
 }
 
-async function submitExpense() {
-  const desc   = $('e-desc').value.trim();
-  const origAmt= parseFloat($('e-orig-amt').value)||0;
-  const currency=$('e-currency').value;
-  const paidBy = $('e-paid-by').value;
-  if(!desc) return toast('Enter a description');
-  if(!origAmt||origAmt<=0) return toast('Enter a valid amount');
-
-  let amount=origAmt, fxRate=1, originalAmount=origAmt;
-  if(currency!=='SGD') {
-    fxRate = parseFloat($('e-fx-rate').value)||0;
-    if(!fxRate) return toast('Enter the FX rate');
-    amount = origAmt * fxRate;
-    originalAmount = origAmt;
+async function submitExpense(){
+  const desc=$('e-desc').value.trim(), origAmt=parseFloat($('e-orig-amt').value)||0;
+  const currency=$('e-currency').value, paidBy=$('e-paid-by').value;
+  if(!desc)return toast('Enter a description');
+  if(!origAmt||origAmt<=0)return toast('Enter a valid amount');
+  let amount=origAmt,fxRate=1,originalAmount=origAmt;
+  if(currency!=='SGD'){
+    fxRate=parseFloat($('e-fx-rate').value)||0;
+    if(!fxRate)return toast('Enter the FX rate');
+    amount=origAmt*fxRate; originalAmount=origAmt;
   }
-
-  const btn=$('add-expense-btn');
-  btn.textContent='Adding…'; btn.disabled=true;
-  try {
-    cur.expenses.push({ id:uuid(), desc, amount, currency, originalAmount, fxRate, paidBy, at:new Date().toISOString(), receiptUrl:_receiptUrl||null });
+  const btn=$('add-expense-btn'); btn.textContent='Adding…';btn.disabled=true;
+  try{
+    cur.expenses.push({id:uuid(),desc,amount,currency,originalAmount,fxRate,paidBy,at:new Date().toISOString(),receiptUrl:_receiptUrl||null});
     await pushTrip(cur);
-    closeModal('modal-expense');
-    renderExpenses();
-    renderTripMeta();
-    toast('Expense added ✓');
-  } finally {
-    btn.textContent='Add Expense'; btn.disabled=false;
-  }
+    closeModal('modal-expense'); renderExpenses(); renderTripMeta(); toast('Expense added ✓');
+  }finally{btn.textContent='Add Expense';btn.disabled=false}
 }
 
-async function deleteExpense(id) {
-  if(!confirm('Delete this expense?')) return;
-  cur.expenses = cur.expenses.filter(e=>e.id!==id);
-  await pushTrip(cur);
-  renderExpenses();
-  renderTripMeta();
-  toast('Expense deleted');
+async function deleteExpense(id){
+  if(!confirm('Delete this expense?'))return;
+  cur.expenses=cur.expenses.filter(e=>e.id!==id);
+  await pushTrip(cur); renderExpenses(); renderTripMeta(); toast('Deleted');
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// BALANCE CALCULATION
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function calcBalances() {
-  const ids = Object.keys(cur.members||{});
-  const b = Object.fromEntries(ids.map(id=>[id,0]));
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// BALANCES
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function calcBalances(){
+  const ids=Object.keys(cur.members||{});
+  const b=Object.fromEntries(ids.map(id=>[id,0]));
   (cur.expenses||[]).forEach(e=>{
-    const share = e.amount / ids.length;
+    const share=e.amount/ids.length;
     ids.forEach(id=>b[id]-=share);
-    if(b[e.paidBy]!==undefined) b[e.paidBy]+=e.amount;
+    if(b[e.paidBy]!==undefined)b[e.paidBy]+=e.amount;
   });
-  // Apply settled settlements
   (cur.settlements||[]).filter(s=>s.status==='paid').forEach(s=>{
-    if(b[s.from]!==undefined) b[s.from]+=s.amount;
-    if(b[s.to]!==undefined)   b[s.to]-=s.amount;
+    if(b[s.from]!==undefined)b[s.from]+=s.amount;
+    if(b[s.to]!==undefined)b[s.to]-=s.amount;
   });
   return b;
 }
 
-function calcSettlements(balances) {
-  const debtors=[], creditors=[];
-  for(const [id,bal] of Object.entries(balances)) {
-    if(bal < -0.005) debtors.push({id,a:-bal});
-    else if(bal > 0.005) creditors.push({id,a:bal});
+function calcSettlements(bal){
+  const d=[],c=[];
+  for(const [id,v] of Object.entries(bal)){
+    if(v<-0.005)d.push({id,a:-v});
+    else if(v>0.005)c.push({id,a:v});
   }
-  debtors.sort((a,b)=>b.a-a.a);
-  creditors.sort((a,b)=>b.a-a.a);
-  const txns=[];
-  let i=0,j=0;
-  while(i<debtors.length&&j<creditors.length) {
-    const amt=Math.min(debtors[i].a,creditors[j].a);
-    txns.push({from:debtors[i].id,to:creditors[j].id,amount:amt});
-    debtors[i].a-=amt; creditors[j].a-=amt;
-    if(debtors[i].a<0.005)i++;
-    if(creditors[j].a<0.005)j++;
+  d.sort((a,b)=>b.a-a.a);c.sort((a,b)=>b.a-a.a);
+  const out=[];let i=0,j=0;
+  while(i<d.length&&j<c.length){
+    const amt=Math.min(d[i].a,c[j].a);
+    out.push({from:d[i].id,to:c[j].id,amount:amt});
+    d[i].a-=amt;c[j].a-=amt;
+    if(d[i].a<0.005)i++;if(c[j].a<0.005)j++;
   }
-  return txns;
+  return out;
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// BALANCES TAB
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function renderBalancesTab() {
-  if(!cur) return;
-  const balances = calcBalances();
-  const settlements = calcSettlements(balances);
-
-  // Per-person summary
-  $('balance-summary').innerHTML =
-    `<div class="sec-hd">Net Balance</div>`+
-    Object.entries(balances).map(([id,bal])=>{
-      const name=getMemberName(id);
-      const cls=bal>=0?'good':'bad';
-      const sign=bal>=0?'+':'-';
-      return `<div class="bal-item">
-        <span class="avatar" style="background:${avColor(id)}">${esc(initials(name))}</span>
-        <div style="flex:1"><b>${esc(name)}</b></div>
-        <b class="${cls}">${sign}${fmtSGD(Math.abs(bal))}</b>
+function renderBalancesTab(){
+  if(!cur)return;
+  const bal=calcBalances(), sets=calcSettlements(bal);
+  $('balance-summary').innerHTML=`<div class="sec-hd">Net Balance</div>`+
+    Object.entries(bal).map(([id,v])=>{
+      const nm=getMName(id),cls=v>=0?'good':'bad',sg=v>=0?'+':'-';
+      return`<div class="bal-item">
+        <span class="avatar" style="background:${avCol(id)}">${esc(initials(nm))}</span>
+        <div style="flex:1"><b>${esc(nm)}</b></div>
+        <b class="${cls}">${sg}${fmtSGD(Math.abs(v))}</b>
       </div>`;
     }).join('');
-
-  // Settlement instructions
-  if(!settlements.length) {
-    $('settle-list').innerHTML=`<div class="card" style="background:var(--accent-light);border-color:var(--accent);text-align:center;margin-top:10px"><b class="good">🎉 All square! No payments needed.</b></div>`;
+  if(!sets.length){
+    $('settle-list').innerHTML=`<div class="card" style="background:var(--accent-light);border-color:var(--accent);text-align:center;margin-top:10px"><b class="good">🎉 All square!</b></div>`;
     return;
   }
-
-  $('settle-list').innerHTML = `<div class="sec-hd mt12">Who Pays Whom</div>`+
-    settlements.map(s=>{
-      const fn=getMemberName(s.from), tn=getMemberName(s.to);
-      const toM = cur.members[s.to];
-      const hasPN = (typeof toM==='object') && toM?.paynowProxy;
-      const sJSON = esc(JSON.stringify(s));
-      return `<div class="settle-card">
+  $('settle-list').innerHTML=`<div class="sec-hd mt12">Who Pays Whom</div>`+
+    sets.map(s=>{
+      const fn=getMName(s.from),tn=getMName(s.to);
+      const toM=cur.members[s.to];
+      const hasPN=(typeof toM==='object')&&toM?.paynowProxy;
+      const sj=esc(JSON.stringify(s));
+      return`<div class="settle-card">
         <div class="row">
-          <span class="avatar" style="background:${avColor(s.from)}">${esc(initials(fn))}</span>
+          <span class="avatar" style="background:${avCol(s.from)}">${esc(initials(fn))}</span>
           <div style="flex:1"><b>${esc(fn)}</b> <span class="muted">pays</span> <b>${esc(tn)}</b></div>
           <b class="bad">${fmtSGD(s.amount)}</b>
         </div>
         <div class="row mt12" style="justify-content:flex-end;gap:8px">
-          ${hasPN?`<button class="btn btn-primary btn-sm" onclick='openSettleModal(${sJSON})'>📱 PayNow QR</button>`:''}
-          <button class="btn btn-outline btn-sm" onclick='openSettleModal(${sJSON},true)'>✓ Mark Paid</button>
+          ${hasPN?`<button class="btn btn-primary btn-sm" onclick='openSettleModal(${sj})'>📱 PayNow QR</button>`:''}
+          <button class="btn btn-outline btn-sm" onclick='openSettleModal(${sj},true)'>✓ Mark Paid</button>
         </div>
       </div>`;
     }).join('');
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SETTLEMENT MODAL & PAYNOW QR
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function openSettleModal(s, declarationOnly=false) {
-  _settleData = s;
-  const fn=getMemberName(s.from), tn=getMemberName(s.to);
-  const toM = cur.members[s.to];
-  const hasPN = !declarationOnly && (typeof toM==='object') && toM?.paynowProxy;
-
-  let html = `<div class="row" style="justify-content:center;gap:20px;margin-bottom:4px">
-    <div class="center">
-      <span class="avatar av-lg" style="background:${avColor(s.from)}">${esc(initials(fn))}</span>
-      <div class="small muted mt4">${esc(fn)}</div>
-    </div>
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// SETTLEMENT & PAYNOW QR
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openSettleModal(s,declarationOnly=false){
+  _settleData=s;
+  const fn=getMName(s.from),tn=getMName(s.to);
+  const toM=cur.members[s.to];
+  const hasPN=!declarationOnly&&(typeof toM==='object')&&toM?.paynowProxy;
+  let html=`<div class="row" style="justify-content:center;gap:20px;margin-bottom:4px">
+    <div class="center"><span class="avatar av-lg" style="background:${avCol(s.from)}">${esc(initials(fn))}</span><div class="small muted mt4">${esc(fn)}</div></div>
     <div style="font-size:1.6rem;color:var(--accent);margin-top:6px">→</div>
-    <div class="center">
-      <span class="avatar av-lg" style="background:${avColor(s.to)}">${esc(initials(tn))}</span>
-      <div class="small muted mt4">${esc(tn)}</div>
-    </div>
+    <div class="center"><span class="avatar av-lg" style="background:${avCol(s.to)}">${esc(initials(tn))}</span><div class="small muted mt4">${esc(tn)}</div></div>
   </div>
   <div class="settle-amount">${fmtSGD(s.amount)}</div>`;
-
-  if(hasPN) {
-    html += `<div class="center mt12">
+  if(hasPN){
+    html+=`<div class="center mt12">
       <div class="small muted" style="margin-bottom:10px">Scan with any PayNow-enabled banking app</div>
       <canvas id="qr-canvas" style="border-radius:10px;display:block;margin:0 auto"></canvas>
       <div class="small muted mt8">PayNow: <b>${esc(toM.paynowProxy)}</b></div>
-      <div class="small muted mt4">${esc(tn)}</div>
     </div>`;
-    $('settle-modal-body').innerHTML = html;
+    $('settle-modal-body').innerHTML=html;
     setTimeout(()=>{
-      try {
-        const qrStr = buildPayNowQR(toM.paynowProxy, toM.paynowType||'2', s.amount, tn);
-        QRCode.toCanvas($('qr-canvas'), qrStr, {
-          width:220, margin:2,
-          color:{ dark:cfg.theme==='dark'?'#e4f2eb':'#085041', light:cfg.theme==='dark'?'#112019':'#ffffff' }
-        });
-      } catch(e) {
-        $('qr-canvas').outerHTML=`<div class="small bad">QR error: ${esc(e.message)}</div>`;
-      }
-    }, 50);
-  } else {
-    html += `<div class="card mt12" style="background:var(--accent-light);border:0;text-align:center">
-      <div class="muted small">${hasPN===false&&!declarationOnly?'No PayNow set for '+esc(tn)+'.':''}</div>
-      <div class="muted small mt4">Click "Mark as Paid" once ${esc(fn)} has paid ${esc(tn)} via any method.</div>
+      try{
+        QRCode.toCanvas($('qr-canvas'),buildPayNowQR(toM.paynowProxy,toM.paynowType||'2',s.amount,tn),
+          {width:220,margin:2,color:{dark:cfg.theme==='dark'?'#e4f2eb':'#085041',light:cfg.theme==='dark'?'#112019':'#ffffff'}});
+      }catch(e){$('qr-canvas').outerHTML=`<div class="small bad">QR error: ${esc(e.message)}</div>`}
+    },50);
+  }else{
+    html+=`<div class="card mt12" style="background:var(--accent-light);border:0;text-align:center">
+      <div class="muted small">Click "Mark as Paid" once ${esc(fn)} has settled with ${esc(tn)}.</div>
     </div>`;
-    $('settle-modal-body').innerHTML = html;
+    $('settle-modal-body').innerHTML=html;
   }
   openModal('modal-settle');
 }
 
-async function confirmSettlement() {
-  if(!_settleData) return;
-  cur.settlements.push({
-    id:uuid(), from:_settleData.from, to:_settleData.to,
-    amount:_settleData.amount, at:new Date().toISOString(), status:'paid'
-  });
-  await pushTrip(cur);
-  closeModal('modal-settle');
-  renderBalancesTab();
-  toast('Marked as paid ✓');
+async function confirmSettlement(){
+  if(!_settleData)return;
+  cur.settlements.push({id:uuid(),from:_settleData.from,to:_settleData.to,amount:_settleData.amount,at:new Date().toISOString(),status:'paid'});
+  await pushTrip(cur); closeModal('modal-settle'); renderBalancesTab(); toast('Marked as paid ✓');
 }
 
-// EMVCo PayNow QR string builder
-function buildPayNowQR(proxy, proxyType, amount, name) {
-  function tlv(id,val){ const v=String(val); return id+String(v.length).padStart(2,'0')+v; }
-  const mai = tlv('00','SG.PAYNOW')+tlv('01',proxyType)+tlv('02',proxy)+tlv('03','1');
-  const raw = [
-    tlv('00','01'),
-    tlv('01','12'),
-    tlv('26',mai),
-    tlv('52','0000'),
-    tlv('53','702'),
-    tlv('54',amount.toFixed(2)),
-    tlv('58','SG'),
-    tlv('59',(name||'PAYNOW').slice(0,25)),
-    tlv('60','Singapore'),
-    '6304'
-  ].join('');
-  const crc = crc16ccitt(raw);
-  return raw + crc.toString(16).toUpperCase().padStart(4,'0');
-}
-
-function crc16ccitt(str) {
+function buildPayNowQR(proxy,type,amount,name){
+  function tlv(id,v){v=String(v);return id+String(v.length).padStart(2,'0')+v}
+  const mai=tlv('00','SG.PAYNOW')+tlv('01',type)+tlv('02',proxy)+tlv('03','1');
+  const raw=[tlv('00','01'),tlv('01','12'),tlv('26',mai),tlv('52','0000'),tlv('53','702'),
+    tlv('54',amount.toFixed(2)),tlv('58','SG'),tlv('59',(name||'PAYNOW').slice(0,25)),tlv('60','Singapore'),'6304'].join('');
   let crc=0xFFFF;
-  for(let i=0;i<str.length;i++){
-    crc ^= str.charCodeAt(i)<<8;
-    for(let j=0;j<8;j++) crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1;
-  }
-  return crc&0xFFFF;
+  for(let i=0;i<raw.length;i++){crc^=raw.charCodeAt(i)<<8;for(let j=0;j<8;j++)crc=(crc&0x8000)?(crc<<1)^0x1021:crc<<1}
+  return raw+(crc&0xFFFF).toString(16).toUpperCase().padStart(4,'0');
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MEMBERS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function renderMembers() {
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderMembers(){
   const list=$('member-list');
   const entries=Object.entries(cur.members||{});
-  if(!entries.length) {
-    list.innerHTML=`<div class="empty"><div class="empty-title">No members</div></div>`;
-    return;
-  }
+  if(!entries.length){list.innerHTML=`<div class="empty"><div class="empty-title">No members</div></div>`;return}
   list.innerHTML=entries.map(([id,m])=>{
-    const mem=normMember(m,id);
-    const isMe=id===uid;
-    const hasPN=mem.paynowProxy;
-    return `<div class="mem-item">
-      <span class="avatar" style="background:${avColor(id)}">${esc(initials(mem.name))}</span>
+    const mem=normM(m,id),isMe=id===uid;
+    return`<div class="mem-item">
+      <span class="avatar" style="background:${avCol(id)}">${esc(initials(mem.name))}</span>
       <div style="flex:1;min-width:0">
         <div class="bold">${esc(mem.name)} ${isMe?'<span class="pill pill-green">You</span>':''}</div>
-        ${hasPN?`<div class="small mt4"><span class="pill pill-blue">💳 PayNow</span> <span class="muted">${esc(mem.paynowProxy)}</span></div>`:''}
+        ${mem.paynowProxy?`<div class="small mt4"><span class="pill pill-blue">💳 PayNow</span> <span class="muted">${esc(mem.paynowProxy)}</span></div>`:''}
       </div>
       <button class="btn btn-outline btn-sm" onclick="editMember('${esc(id)}')">Edit</button>
     </div>`;
   }).join('');
 }
 
-function openAddMemberModal() {
-  _editMemberId = null;
-  $('member-modal-title').textContent = 'Add Member';
-  $('member-submit-btn').textContent = 'Add Member';
-  $('m-name').value=''; $('m-paynow').value=''; $('m-paynow-type').value='2';
+function openAddMemberModal(){
+  _editMemberId=null;
+  $('member-modal-title').textContent='Add Member';$('member-submit-btn').textContent='Add Member';
+  $('m-name').value='';$('m-paynow').value='';$('m-paynow-type').value='2';
   openModal('modal-member');
 }
-
-function editMember(id) {
-  _editMemberId = id;
-  const mem = normMember(cur.members[id], id);
-  $('member-modal-title').textContent = 'Edit Member';
-  $('member-submit-btn').textContent = 'Save Changes';
-  $('m-name').value = mem.name||'';
-  $('m-paynow').value = mem.paynowProxy||'';
-  $('m-paynow-type').value = mem.paynowType||'2';
+function editMember(id){
+  _editMemberId=id;
+  const mem=normM(cur.members[id],id);
+  $('member-modal-title').textContent='Edit Member';$('member-submit-btn').textContent='Save Changes';
+  $('m-name').value=mem.name||'';$('m-paynow').value=mem.paynowProxy||'';$('m-paynow-type').value=mem.paynowType||'2';
   openModal('modal-member');
 }
-
-async function submitMember() {
-  const name = $('m-name').value.trim();
-  if(!name) return toast('Enter a name');
-  const paynow = $('m-paynow').value.trim();
-  const paynowType = $('m-paynow-type').value;
-  const id = _editMemberId || ('m_'+uuid());
-  const data = { name, avatarColor: avColor(id) };
-  if(paynow) { data.paynowProxy=paynow; data.paynowType=paynowType; }
-  cur.members[id] = data;
-  await pushTrip(cur);
-  closeModal('modal-member');
-  renderMembers();
-  renderTripMeta();
-  toast(_editMemberId ? 'Updated ✓' : 'Member added ✓');
+async function submitMember(){
+  const name=$('m-name').value.trim(); if(!name)return toast('Enter a name');
+  const paynow=$('m-paynow').value.trim(),type=$('m-paynow-type').value;
+  const id=_editMemberId||('m_'+uuid());
+  const data={name,avatarColor:avCol(id)};
+  if(paynow){data.paynowProxy=paynow;data.paynowType=type}
+  cur.members[id]=data;
+  await pushTrip(cur); closeModal('modal-member'); renderMembers(); renderTripMeta();
+  toast(_editMemberId?'Updated ✓':'Member added ✓');
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DASHBOARD
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function renderDashboard() {
-  if(!cur) return;
-  const exps = cur.expenses||[];
-  const ids  = Object.keys(cur.members||{});
-  const total = exps.reduce((s,e)=>s+(e.amount||0),0);
-  const avgPerPax = ids.length ? total/ids.length : 0;
-  const balances = calcBalances();
-  const largest = exps.length ? Math.max(...exps.map(e=>e.amount||0)) : 0;
-
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderDashboard(){
+  if(!cur)return;
+  const exps=cur.expenses||[],ids=Object.keys(cur.members||{});
+  const total=exps.reduce((s,e)=>s+(e.amount||0),0);
+  const avg=ids.length?total/ids.length:0;
+  const largest=exps.length?Math.max(...exps.map(e=>e.amount||0)):0;
+  const bal=calcBalances();
   $('dash-stats').innerHTML=`
     <div class="stat-card"><div class="stat-val">${fmtSGD(total)}</div><div class="stat-label">Total Spent</div></div>
-    <div class="stat-card"><div class="stat-val">${fmtSGD(avgPerPax)}</div><div class="stat-label">Per Person</div></div>
+    <div class="stat-card"><div class="stat-val">${fmtSGD(avg)}</div><div class="stat-label">Per Person</div></div>
     <div class="stat-card"><div class="stat-val">${exps.length}</div><div class="stat-label">Transactions</div></div>
-    <div class="stat-card"><div class="stat-val">${fmtSGD(largest)}</div><div class="stat-label">Largest Expense</div></div>
-  `;
-
-  // Destroy old
-  Object.values(_charts).forEach(c=>{ try{c.destroy()}catch{} });
-  _charts={};
-
-  if(!exps.length) return;
-
-  const isDark = cfg.theme==='dark';
-  const textColor = isDark ? '#7aaa90' : '#4a6457';
-  const gridColor = isDark ? '#263d30' : '#d5e4dc';
-  const surfaceColor = isDark ? '#112019' : '#ffffff';
-
-  // Donut – spending by person
-  const byPerson = Object.fromEntries(ids.map(id=>[id,0]));
-  exps.forEach(e=>{ if(byPerson[e.paidBy]!==undefined) byPerson[e.paidBy]+=e.amount; });
-  const donutCtx = $('chart-donut').getContext('2d');
-  _charts.donut = new Chart(donutCtx, {
+    <div class="stat-card"><div class="stat-val">${fmtSGD(largest)}</div><div class="stat-label">Largest</div></div>`;
+  Object.values(_charts).forEach(c=>{try{c.destroy()}catch{}});_charts={};
+  if(!exps.length)return;
+  const isDark=cfg.theme==='dark';
+  const tc=isDark?'#7aaa90':'#4a6457',gc=isDark?'#263d30':'#d5e4dc',sc=isDark?'#112019':'#ffffff';
+  const byP=Object.fromEntries(ids.map(id=>[id,0]));
+  exps.forEach(e=>{if(byP[e.paidBy]!==undefined)byP[e.paidBy]+=e.amount});
+  _charts.donut=new Chart($('chart-donut').getContext('2d'),{
     type:'doughnut',
-    data:{
-      labels: ids.map(id=>getMemberName(id)),
-      datasets:[{ data:ids.map(id=>+(byPerson[id]||0).toFixed(2)),
-        backgroundColor:ids.map(id=>avColor(id)),
-        borderColor:surfaceColor, borderWidth:3 }]
-    },
-    options:{ responsive:true, cutout:'62%',
-      plugins:{ legend:{ position:'bottom', labels:{ font:{size:11}, color:textColor, padding:12 } } }
-    }
+    data:{labels:ids.map(getMName),datasets:[{data:ids.map(id=>+(byP[id]||0).toFixed(2)),
+      backgroundColor:ids.map(avCol),borderColor:sc,borderWidth:3}]},
+    options:{responsive:true,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{size:11},color:tc,padding:12}}}}
   });
-
-  // Bar – net balances
-  const balVals = ids.map(id=>+(balances[id]||0).toFixed(2));
-  const barCtx = $('chart-bar').getContext('2d');
-  _charts.bar = new Chart(barCtx, {
+  const bv=ids.map(id=>+(bal[id]||0).toFixed(2));
+  _charts.bar=new Chart($('chart-bar').getContext('2d'),{
     type:'bar',
-    data:{
-      labels: ids.map(id=>getMemberName(id)),
-      datasets:[{ data:balVals,
-        backgroundColor:balVals.map(v=>v>=0?'#1D9E7540':'#C9303040'),
-        borderColor:balVals.map(v=>v>=0?'#1D9E75':'#C93030'),
-        borderWidth:2, borderRadius:6 }]
-    },
-    options:{ responsive:true,
-      plugins:{ legend:{display:false} },
-      scales:{
-        y:{ grid:{color:gridColor}, ticks:{color:textColor,callback:v=>'S$'+v} },
-        x:{ grid:{display:false}, ticks:{color:textColor} }
-      }
-    }
+    data:{labels:ids.map(getMName),datasets:[{data:bv,
+      backgroundColor:bv.map(v=>v>=0?'#1D9E7540':'#C9303040'),
+      borderColor:bv.map(v=>v>=0?'#1D9E75':'#C93030'),borderWidth:2,borderRadius:6}]},
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}
   });
-
-  // Line – daily spending
-  const byDate={};
-  exps.forEach(e=>{ const d=(e.at||'').slice(0,10)||'?'; byDate[d]=(byDate[d]||0)+e.amount; });
-  const dates=Object.keys(byDate).sort();
-  const lineCtx = $('chart-line').getContext('2d');
-  _charts.line = new Chart(lineCtx, {
+  const byD={};exps.forEach(e=>{const d=(e.at||'').slice(0,10)||'?';byD[d]=(byD[d]||0)+e.amount});
+  const dates=Object.keys(byD).sort();
+  _charts.line=new Chart($('chart-line').getContext('2d'),{
     type:'line',
-    data:{
-      labels: dates.map(d=>new Date(d).toLocaleDateString('en-SG',{day:'numeric',month:'short'})),
-      datasets:[{ data:dates.map(d=>+(byDate[d]).toFixed(2)),
-        borderColor:'#1D9E75', backgroundColor:'#1D9E7522',
-        fill:true, tension:0.4, pointBackgroundColor:'#1D9E75', pointRadius:4 }]
-    },
-    options:{ responsive:true,
-      plugins:{ legend:{display:false} },
-      scales:{
-        y:{ grid:{color:gridColor}, ticks:{color:textColor,callback:v=>'S$'+v} },
-        x:{ grid:{display:false}, ticks:{color:textColor} }
-      }
-    }
+    data:{labels:dates.map(d=>new Date(d).toLocaleDateString('en-SG',{day:'numeric',month:'short'})),
+      datasets:[{data:dates.map(d=>+(byD[d]).toFixed(2)),borderColor:'#1D9E75',backgroundColor:'#1D9E7522',
+        fill:true,tension:0.4,pointBackgroundColor:'#1D9E75',pointRadius:4}]},
+    options:{responsive:true,plugins:{legend:{display:false}},
+      scales:{y:{grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}
   });
 }
 
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // SETTINGS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function renderSettings() {
-  $('set-trip-name').textContent = cur.name;
-  $('set-trip-code').textContent = cur.code;
-  $('set-currency').value = cur.currency||'SGD';
-  $('set-name').value = cfg.name;
-  $('set-api-url').textContent = cfg.api||'(not configured)';
-  $('toggle-dark').checked = cfg.theme==='dark';
-  $('font-slider').value = cfg.fontSize||15;
-  $('font-size-label').textContent = (cfg.fontSize||15)+'px';
-  const me = cur.members[uid];
-  if(me && typeof me==='object') {
-    $('my-paynow').value = me.paynowProxy||'';
-    $('my-paynow-type').value = me.paynowType||'2';
-  }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderSettings(){
+  $('set-trip-name').textContent=cur.name;$('set-trip-code').textContent=cur.code;
+  $('set-currency').value=cur.currency||'SGD';$('set-name').value=cfg.name;
+  $('set-api-url').textContent=cfg.api||'(not configured)';
+  $('toggle-dark').checked=cfg.theme==='dark';
+  $('font-slider').value=cfg.fontSize||15;$('font-size-label').textContent=(cfg.fontSize||15)+'px';
+  const me=cur.members[uid];
+  if(me&&typeof me==='object'){$('my-paynow').value=me.paynowProxy||'';$('my-paynow-type').value=me.paynowType||'2'}
+}
+function renameTripPrompt(){
+  const n=prompt('New name:',cur.name);if(!n?.trim())return;
+  cur.name=n.trim();pushTrip(cur);renderTripMeta();renderSettings();toast('Renamed ✓');
+}
+function copyTripCode(){
+  navigator.clipboard.writeText(cur.code).then(()=>toast('Copied: '+cur.code)).catch(()=>toast(cur.code));
+}
+function setTripCurrency(c){cur.currency=c;pushTrip(cur);toast('Currency: '+c)}
+function updateMyName(n){
+  if(!n.trim())return;cfg.name=n.trim();saveCfg();
+  if(cur?.members?.[uid]){const m=normM(cur.members[uid],uid);m.name=n.trim();cur.members[uid]=m;pushTrip(cur)}
+}
+async function saveMyPayNow(){
+  const proxy=$('my-paynow').value.trim(),type=$('my-paynow-type').value;
+  if(!cur.members[uid])return;
+  const m=normM(cur.members[uid],uid);
+  if(proxy){m.paynowProxy=proxy;m.paynowType=type}else{delete m.paynowProxy;delete m.paynowType}
+  cur.members[uid]=m;await pushTrip(cur);toast('PayNow saved ✓');
 }
 
-function renameTripPrompt() {
-  const name=prompt('New trip name:',cur.name);
-  if(!name?.trim()) return;
-  cur.name=name.trim();
-  pushTrip(cur);
-  renderTripMeta();
-  renderSettings();
-  toast('Trip renamed ✓');
-}
-
-function copyTripCode() {
-  navigator.clipboard.writeText(cur.code)
-    .then(()=>toast('Copied: '+cur.code))
-    .catch(()=>toast(cur.code));
-}
-
-function setTripCurrency(c) {
-  cur.currency=c; pushTrip(cur);
-  toast('Currency set to '+c);
-}
-
-function updateMyName(name) {
-  if(!name.trim()) return;
-  cfg.name=name.trim(); saveCfg();
-  if(cur?.members?.[uid]) {
-    const m=normMember(cur.members[uid],uid);
-    m.name=name.trim();
-    cur.members[uid]=m;
-    pushTrip(cur);
-  }
-}
-
-async function saveMyPayNow() {
-  const proxy=$('my-paynow').value.trim();
-  const type=$('my-paynow-type').value;
-  if(!cur.members[uid]) return;
-  const m=normMember(cur.members[uid],uid);
-  if(proxy) { m.paynowProxy=proxy; m.paynowType=type; }
-  else { delete m.paynowProxy; delete m.paynowType; }
-  cur.members[uid]=m;
-  await pushTrip(cur);
-  toast('PayNow saved ✓');
-}
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODALS
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function openModal(id) { $(id).classList.add('open'); document.body.style.overflow='hidden'; }
-function closeModal(id){ $(id).classList.remove('open'); document.body.style.overflow=''; }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openModal(id){$(id).classList.add('open');document.body.style.overflow='hidden'}
+function closeModal(id){$(id).classList.remove('open');document.body.style.overflow=''}
+document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))closeModal(e.target.id)});
 
-document.addEventListener('click', e=>{
-  if(e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
-});
-
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // INIT
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function init() {
-  applyTheme(cfg.theme||'light');
-  applyFontSize(cfg.fontSize||15);
-
-  // Migrate old trip data (string members → object members)
-  let migrated=false;
-  for(const t of Object.values(trips)) {
-    for(const [id,m] of Object.entries(t.members||{})) {
-      if(typeof m==='string') { t.members[id]=normMember(m,id); migrated=true; }
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function init(){
+  applyTheme(cfg.theme||'light');applyFontSize(cfg.fontSize||15);
+  // Migrate old string-member format
+  let m=false;
+  for(const t of Object.values(trips)){
+    for(const [id,v] of Object.entries(t.members||{})){
+      if(typeof v==='string'){t.members[id]=normM(v,id);m=true}
     }
-    if(!t.settlements) { t.settlements=[]; migrated=true; }
+    if(!t.settlements){t.settlements=[];m=true}
   }
-  if(migrated) saveTrips();
-
-  if(!cfg.name) showSetup();
-  else goHome();
+  if(m)saveTrips();
+  if(!cfg.name)showSetup();else goHome();
 }
-
 init();
 </script>
 </body>
