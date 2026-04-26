@@ -20,10 +20,10 @@ export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: cors });
     try {
-      if (!env.DATABASE_URL) return json({ error: 'DATABASE_URL secret missing' }, 500);
-      const sql = neon(env.DATABASE_URL);
       const url = new URL(request.url);
       if (url.pathname === '/health') return json({ ok: true });
+      if (!env.DATABASE_URL) return json({ error: 'DATABASE_URL secret missing' }, 500);
+      const sql = neon(env.DATABASE_URL);
 
       const code = codeFromPath(url.pathname);
       if (!code) return json({ error: 'Not found' }, 404);
