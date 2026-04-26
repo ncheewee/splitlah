@@ -33,3 +33,25 @@ Fixes:
 
 Status:
 - Completed. Awaiting user approval for Cycle 2.
+
+## Cycle 2
+Focus:
+- Live public UAT with GitHub Pages pointed to `codex/redesign-mvp`.
+- Test core MVP loop: publish identity, cloud health, trip creation, member add, expense add, balances, settlement.
+
+Findings:
+- C2-F1: GitHub Pages was initially pointed to `claude/redesign-mvp`; switched to `codex/redesign-mvp` for Codex UAT with user approval.
+- C2-F2: Public Codex build loaded with correct title and banner.
+- C2-F3: Cloud health test returned connected through the in-app UI.
+- C2-F4: Trip creation worked with currency dropdown. Test trip code: `DKM8T1`.
+- C2-F5: Member add worked and normalized `97605390` to `+6597605390` in persisted backend data.
+- C2-F6: SGD expense add worked and recalculated total/per-pax/balances correctly.
+- C2-F7: Settlement QR generated for PayNow-enabled member and exposed SGQR payload with `+6597605390` and `S$5`.
+- C2-F8: Mark-as-paid recorded settlement and cleared balances to zero.
+- C2-F9: Worker/Neon verification passed via `GET /trips/DKM8T1`.
+
+Fixes:
+- No code fixes needed in Cycle 2. Test-only cycle.
+
+Status:
+- Completed. Awaiting user approval for Cycle 3.
