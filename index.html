@@ -58,7 +58,7 @@ select.field{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .2s}
 .modal-overlay.open{opacity:1;pointer-events:all}
-.modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:18px 16px 32px;transform:translateY(16px);transition:transform .25s}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;padding:18px 16px 32px;transform:translateY(16px);transition:transform .25s}
 .modal-overlay.open .modal{transform:translateY(0)}
 .modal-handle{width:38px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 16px}
 .modal-title{font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--text)}
@@ -104,6 +104,14 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .empty-msg{font-size:.82rem}
 .sec-hd{font-size:.72rem;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin:14px 0 8px}
 
+/* split segment control */
+.split-seg{display:flex;background:var(--surface2);border-radius:8px;padding:3px;gap:2px;margin-bottom:10px}
+.split-tab{flex:1;padding:8px 4px;border-radius:6px;font-size:.8rem;font-weight:600;background:transparent;color:var(--text2);border:0;cursor:pointer;transition:all .15s}
+.split-tab.active{background:var(--accent);color:#fff}
+.split-row{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.split-row input.field{width:88px;padding:7px 8px;font-size:.85rem;text-align:right;flex-shrink:0}
+.split-footer{display:flex;align-items:center;justify-content:space-between;padding:9px 0 2px;border-top:1px solid var(--border);margin-top:4px}
+
 /* ── WELCOME SCREEN ── */
 .welcome-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--primary)}
 .welcome-icon{width:72px;height:72px;border-radius:20px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:2.2rem;margin:0 auto 20px}
@@ -140,7 +148,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="header-row">
         <div class="grow">
           <div class="logo">SplitLah <span class="logo-badge">CLAUDE</span></div>
-          <div class="logo-sub" id="home-sub">v2.1</div>
+          <div class="logo-sub" id="home-sub">v2.2</div>
         </div>
         <button class="hbtn" onclick="toggleTheme()" id="theme-btn-home">☀</button>
         <button class="hbtn" onclick="openProfileModal()">👤</button>
@@ -260,8 +268,12 @@ input[type=range]{width:100%;accent-color:var(--accent)}
   <div class="modal">
     <div class="modal-handle"></div>
     <div class="modal-title">Backend Config</div>
-    <div class="fg"><label class="label">Worker API URL</label><input id="api-url-input" class="field" placeholder="https://splitlah-api.ncheewee.workers.dev"><div class="small muted mt4">Leave blank for offline mode.</div></div>
-    <div class="fg"><label class="label">ImageKit Public Key <span class="pill pill-gray">optional</span></label><input id="api-ik-key" class="field" placeholder="public_xxxxxxxxx"></div>
+    <div class="fg"><label class="label">Worker API URL</label><input id="api-url-input" class="field" placeholder="https://splitlah-api.ncheewee.workers.dev"></div>
+    <div class="fg">
+      <label class="label">ImageKit Public Key <span class="pill pill-gray">optional</span></label>
+      <input id="api-ik-key" class="field" placeholder="public_xxxxxxxxx">
+      <div class="small muted mt4">Requires "Unsigned uploads" enabled in ImageKit dashboard → Security settings.</div>
+    </div>
     <div class="fg"><label class="label">ImageKit URL Endpoint</label><input id="api-ik-ep" class="field" placeholder="https://ik.imagekit.io/yourname"></div>
     <div class="row" style="gap:9px;margin-top:6px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-api')">Cancel</button>
@@ -277,7 +289,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div class="modal-title" id="expense-modal-title">Add Expense</div>
     <div class="fg"><label class="label">Description</label><input id="e-desc" class="field" placeholder="e.g. Dinner at Maxwell"></div>
     <div class="grid2">
-      <div class="fg"><label class="label">Amount</label><input id="e-orig-amt" class="field" type="number" step="0.01" min="0" placeholder="0.00" oninput="updateFxConvert()"></div>
+      <div class="fg"><label class="label">Amount</label><input id="e-orig-amt" class="field" type="number" step="0.01" min="0" placeholder="0.00" oninput="onAmountInput()"></div>
       <div class="fg">
         <label class="label">Currency</label>
         <select id="e-currency" class="field" onchange="onCurrencyChange()">
@@ -289,7 +301,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     </div>
     <div id="fx-row" class="hide">
       <div class="grid2">
-        <div class="fg"><label class="label">FX Rate → SGD</label><input id="e-fx-rate" class="field" type="number" step="0.0001" placeholder="1.0000" oninput="updateFxConvert()"></div>
+        <div class="fg"><label class="label">FX Rate → SGD</label><input id="e-fx-rate" class="field" type="number" step="0.0001" placeholder="1.0000" oninput="onAmountInput()"></div>
         <div class="fg"><label class="label">SGD Equivalent</label><input id="e-sgd-amt" class="field" readonly style="background:var(--surface2)" placeholder="0.00"></div>
       </div>
       <div class="row mt4" style="margin-bottom:10px">
@@ -298,6 +310,23 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       </div>
     </div>
     <div class="fg"><label class="label">Paid By</label><select id="e-paid-by" class="field"></select></div>
+
+    <!-- ── SPLIT SECTION ── -->
+    <div class="fg">
+      <label class="label">Split Among</label>
+      <div class="split-seg">
+        <button id="split-eq-btn" class="split-tab active" onclick="setSplitMode('equal')">⚖ Equal</button>
+        <button id="split-cu-btn" class="split-tab" onclick="setSplitMode('custom')">✎ Custom</button>
+      </div>
+      <div id="split-custom-ui" class="hide">
+        <div id="split-rows"></div>
+        <div class="split-footer">
+          <span class="small muted">Total allocated</span>
+          <span id="split-total-label" class="small bold good">S$0.00 / S$0.00</span>
+        </div>
+      </div>
+    </div>
+
     <div class="fg">
       <label class="label">Receipt <span class="pill pill-gray">optional</span></label>
       <input type="file" id="e-receipt" accept="image/*" class="field" style="padding:7px" onchange="onReceiptSelected(this)">
@@ -346,21 +375,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STATE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const VER='v2.1';
+const VER='v2.2';
 const LS_CFG='sl_cfg_v2',LS_TRIPS='sl_trips_v2',LS_FX='sl_fx_v2';
 const AV_COLORS=['#085041','#1D9E75','#0F6E56','#5B6BB5','#C05C2C','#7B4BAD','#B88000','#B54064','#2E7DAB'];
+const DEFAULT_API='https://splitlah-api.ncheewee.workers.dev';
 
 let uid=localStorage.sl_uid||(localStorage.sl_uid='u_'+crypto.randomUUID());
-let cfg=sj(localStorage[LS_CFG],{name:'',api:'',ikPublicKey:'',ikEndpoint:'',theme:'light',fontSize:15,paynow:'',paynowType:'2'});
+let cfg=sj(localStorage[LS_CFG],{name:'',api:DEFAULT_API,ikPublicKey:'',ikEndpoint:'',theme:'light',fontSize:15,paynow:'',paynowType:'2'});
+// Backfill default API for existing users who have empty api
+if(!cfg.api)cfg.api=DEFAULT_API;
 let trips=sj(localStorage[LS_TRIPS],{});
 let fxCache=sj(localStorage[LS_FX],{});
 let curCode=null,cur=null;
 let _charts={},_settleData=null,_receiptUrl=null,_editMemberId=null,_editExpenseId=null;
+let _splitMode='equal',_splitAmts={};
 let _toastTimer;
 
 function sj(s,d){try{return s?JSON.parse(s):d}catch{return d}}
@@ -412,7 +445,7 @@ function getMName(id){if(!cur?.members?.[id])return'?';return normM(cur.members[
 // API
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function apiCall(path,method='GET',body){
-  if(!cfg.api)throw new Error('No API configured');
+  if(!cfg.api)throw new Error('API not configured — go to Settings → Edit API URL');
   const r=await fetch(cfg.api+path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(j.error||'API '+r.status);
@@ -428,7 +461,8 @@ async function pullTrip(code){
   trips[code]=j.trip;saveTrips();return j.trip;
 }
 async function syncTrip(){
-  if(!curCode||!cfg.api)return toast('No API configured');
+  if(!curCode)return;
+  if(!cfg.api)return toast('No API configured — edit in Settings',true);
   toast('Syncing…');
   try{cur=await pullTrip(curCode);renderTripMeta();renderActiveTab();toast('Synced ✓')}
   catch(e){toast('Sync failed: '+e.message,true)}
@@ -491,7 +525,6 @@ function saveProfile(){
   cfg.paynow=$('prof-paynow').value.trim();
   cfg.paynowType=$('prof-paynow-type').value;
   saveCfg();
-  // Sync name+paynow into all local trips where this uid is a member
   for(const t of Object.values(trips)){
     if(t.members?.[uid]){
       const m=normM(t.members[uid],uid);
@@ -502,9 +535,7 @@ function saveProfile(){
       pushTrip(t);
     }
   }
-  closeModal('modal-profile');
-  renderHome();
-  toast('Profile saved ✓');
+  closeModal('modal-profile');renderHome();toast('Profile saved ✓');
 }
 
 // API CONFIG MODAL
@@ -515,11 +546,10 @@ function openApiModal(){
   openModal('modal-api');
 }
 function saveApiConfig(){
-  cfg.api=($('api-url-input').value||'').trim().replace(/\/$/,'');
+  cfg.api=($('api-url-input').value||'').trim().replace(/\/$/,'')||DEFAULT_API;
   cfg.ikPublicKey=$('api-ik-key').value.trim();
   cfg.ikEndpoint=($('api-ik-ep').value||'').trim().replace(/\/$/,'');
-  saveCfg();closeModal('modal-api');
-  renderSettings();toast('Config saved ✓');
+  saveCfg();closeModal('modal-api');renderSettings();toast('Config saved ✓');
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -562,6 +592,10 @@ async function promptNewTrip(){
 async function promptJoinTrip(){
   const code=(prompt('Enter trip code:')||'').trim().toUpperCase();if(!code)return;
   if(trips[code])return openTrip(code);
+  if(!cfg.api){
+    toast('Opening API config — paste the URL then try again',true);
+    return openApiModal();
+  }
   try{
     toast('Looking up…');
     const t=await pullTrip(code);
@@ -570,7 +604,7 @@ async function promptJoinTrip(){
       await pushTrip(t);
     }
     openTrip(code);
-  }catch(e){toast('Not found: '+e.message,true)}
+  }catch(e){toast('Trip not found: '+e.message,true)}
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -597,11 +631,12 @@ function renderExpenses(){
     const isFx=e.currency&&e.currency!=='SGD';
     const amtMain=isFx?fmtAmt(e.originalAmount||e.amount,e.currency):fmtSGD(e.amount);
     const amtSub=isFx?'≈ '+fmtSGD(e.amount):'';
+    const splitNote=e.splits?'<span class="pill pill-gray" style="margin-left:3px">custom split</span>':fmtSGD((e.amount||0)/n)+'/pax';
     return`<div class="exp-item">
       <div class="exp-icon">🧾</div>
       <div style="flex:1;min-width:0">
         <div class="exp-desc">${esc(e.desc)}</div>
-        <div class="exp-meta">Paid by ${esc(getMName(e.paidBy))} · ${fmtDate(e.at)} · ${fmtSGD((e.amount||0)/n)}/pax</div>
+        <div class="exp-meta">Paid by ${esc(getMName(e.paidBy))} · ${fmtDate(e.at)} · ${e.splits?'':''}${splitNote}</div>
         ${e.receiptUrl?`<a href="${esc(e.receiptUrl)}" target="_blank" class="small" style="color:var(--accent);margin-top:3px;display:inline-block">📷 Receipt</a>`:''}
       </div>
       <div style="flex-shrink:0;text-align:right">
@@ -616,14 +651,80 @@ function renderExpenses(){
   }).join('');
 }
 
+// ── SPLIT LOGIC ──
+function getSGDAmount(){
+  const c=$('e-currency').value;
+  if(c==='SGD')return parseFloat($('e-orig-amt').value)||0;
+  return parseFloat($('e-sgd-amt').value)||0;
+}
+
+function setSplitMode(mode){
+  _splitMode=mode;
+  $('split-eq-btn').className='split-tab'+(mode==='equal'?' active':'');
+  $('split-cu-btn').className='split-tab'+(mode==='custom'?' active':'');
+  $('split-custom-ui').classList.toggle('hide',mode==='equal');
+  if(mode==='custom')initSplitAmts();
+}
+
+function initSplitAmts(){
+  const ids=Object.keys(cur.members||{});
+  const total=getSGDAmount();
+  if(!ids.length)return;
+  const per=+(total/ids.length).toFixed(2);
+  _splitAmts={};
+  ids.forEach(id=>_splitAmts[id]=per);
+  // fix rounding: assign remainder to first person
+  const diff=+(total-ids.reduce((s,id)=>s+_splitAmts[id],0)).toFixed(2);
+  if(Math.abs(diff)>0)_splitAmts[ids[0]]=+(_splitAmts[ids[0]]+diff).toFixed(2);
+  renderSplitRows();
+}
+
+function renderSplitRows(){
+  const ids=Object.keys(cur.members||{});
+  const total=getSGDAmount();
+  $('split-rows').innerHTML=ids.map(id=>{
+    const nm=getMName(id);
+    const val=(_splitAmts[id]||0).toFixed(2);
+    return`<div class="split-row">
+      <span class="avatar" style="background:${avCol(id)};width:28px;height:28px;font-size:.6rem;border:none">${esc(initials(nm))}</span>
+      <span class="small bold grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nm)}</span>
+      <input type="number" step="0.01" min="0" value="${val}" class="field split-row-input"
+        style="width:88px;padding:7px 8px;font-size:.85rem;text-align:right"
+        oninput="onSplitInput('${esc(id)}',this.value)">
+    </div>`;
+  }).join('');
+  updateSplitLabel(total);
+}
+
+function onSplitInput(id,val){
+  _splitAmts[id]=parseFloat(val)||0;
+  updateSplitLabel(getSGDAmount());
+}
+
+function updateSplitLabel(total){
+  const sum=+Object.values(_splitAmts).reduce((s,v)=>s+v,0).toFixed(2);
+  const el=$('split-total-label');if(!el)return;
+  const ok=Math.abs(sum-total)<0.02;
+  el.textContent=fmtSGD(sum)+' / '+fmtSGD(total);
+  el.style.color=ok?'var(--pos)':(sum>total?'var(--neg)':'var(--text)');
+}
+
 function openExpenseModal(editId=null){
   _editExpenseId=editId;
+  _splitMode='equal';_splitAmts={};
   $('expense-modal-title').textContent=editId?'Edit Expense':'Add Expense';
   $('add-expense-btn').textContent=editId?'Save Changes':'Add Expense';
   $('e-paid-by').innerHTML=Object.entries(cur.members||{}).map(([id,m])=>{
     const nm=normM(m,id).name;
     return`<option value="${esc(id)}"${id===uid?' selected':''}>${esc(nm)}</option>`;
   }).join('');
+
+  // reset split UI
+  $('split-eq-btn').className='split-tab active';
+  $('split-cu-btn').className='split-tab';
+  $('split-custom-ui').classList.add('hide');
+  $('split-rows').innerHTML='';
+
   if(editId){
     const e=cur.expenses.find(x=>x.id===editId);
     if(!e)return;
@@ -634,6 +735,14 @@ function openExpenseModal(editId=null){
     $('e-fx-rate').value=e.fxRate&&e.fxRate!==1?e.fxRate:'';
     $('e-sgd-amt').value=e.currency&&e.currency!=='SGD'?e.amount.toFixed(2):'';
     $('fx-row').classList.toggle('hide',!e.currency||e.currency==='SGD');
+    // restore splits
+    if(e.splits&&Object.keys(e.splits).length){
+      _splitMode='custom';_splitAmts={...e.splits};
+      $('split-eq-btn').className='split-tab';
+      $('split-cu-btn').className='split-tab active';
+      $('split-custom-ui').classList.remove('hide');
+      renderSplitRows();
+    }
   }else{
     $('e-desc').value='';$('e-orig-amt').value='';$('e-currency').value=cur.currency||'SGD';
     $('e-fx-rate').value='';$('e-sgd-amt').value='';$('fx-row').classList.add('hide');
@@ -645,9 +754,14 @@ function openExpenseModal(editId=null){
 
 function editExpense(id){openExpenseModal(id)}
 
+function onAmountInput(){
+  updateFxConvert();
+  if(_splitMode==='custom')initSplitAmts();
+}
+
 async function onCurrencyChange(){
   const c=$('e-currency').value;
-  if(c==='SGD'){$('fx-row').classList.add('hide');return;}
+  if(c==='SGD'){$('fx-row').classList.add('hide');if(_splitMode==='custom')initSplitAmts();return;}
   $('fx-row').classList.remove('hide');await fetchFxRate(c);
 }
 
@@ -671,7 +785,11 @@ async function fetchFxRate(from){
   }catch(e){$('fx-status').textContent='Rate unavailable — enter manually'}
 }
 async function refreshFxRate(){const c=$('e-currency').value;if(c==='SGD')return;delete fxCache[c+'_SGD'];saveFx();await fetchFxRate(c)}
-function updateFxConvert(){const a=parseFloat($('e-orig-amt').value)||0,r=parseFloat($('e-fx-rate').value)||0;$('e-sgd-amt').value=(a&&r)?(a*r).toFixed(2):''}
+function updateFxConvert(){
+  const a=parseFloat($('e-orig-amt').value)||0,r=parseFloat($('e-fx-rate').value)||0;
+  $('e-sgd-amt').value=(a&&r)?(a*r).toFixed(2):'';
+  if(_splitMode==='custom')initSplitAmts();
+}
 
 async function onReceiptSelected(input){
   const file=input.files[0];if(!file)return;
@@ -679,14 +797,25 @@ async function onReceiptSelected(input){
   reader.onload=e=>{$('receipt-preview').src=e.target.result;$('receipt-preview').style.display='block'};
   reader.readAsDataURL(file);
   if(cfg.ikPublicKey&&cfg.ikEndpoint){
-    $('upload-status').textContent='⏳ Uploading…';
+    $('upload-status').textContent='⏳ Uploading to ImageKit…';
     try{
-      const fd=new FormData();fd.append('file',file);fd.append('fileName','receipt_'+Date.now()+'.jpg');fd.append('publicKey',cfg.ikPublicKey);
+      const fd=new FormData();
+      fd.append('file',file);
+      fd.append('fileName','receipt_'+Date.now()+'.jpg');
+      fd.append('publicKey',cfg.ikPublicKey);
+      fd.append('useUniqueFileName','true');
       const res=await fetch('https://upload.imagekit.io/api/v1/files/upload',{method:'POST',body:fd});
       const j=await res.json();
-      if(j.url){_receiptUrl=j.url;$('upload-status').textContent='✅ Uploaded'}
-      else throw new Error(j.message||'failed');
-    }catch(e){$('upload-status').textContent='⚠️ Upload failed — stored locally';_receiptUrl=$('receipt-preview').src}
+      if(j.url){_receiptUrl=j.url;$('upload-status').textContent='✅ Uploaded to ImageKit'}
+      else throw new Error(j.message||'Upload failed — check ImageKit dashboard: Settings → Security → disable "Restrict unsigned image uploads"');
+    }catch(e){
+      $('upload-status').textContent='⚠️ ImageKit upload failed — receipt saved locally only. '+e.message;
+      _receiptUrl=$('receipt-preview').src;
+    }
+  }else{
+    // store as data URL (local only, not synced)
+    _receiptUrl=$('receipt-preview').src;
+    $('upload-status').textContent='📎 Stored locally (configure ImageKit to sync receipts)';
   }
 }
 
@@ -701,18 +830,26 @@ async function submitExpense(){
     if(!fxRate)return toast('Enter the FX rate');
     amount=origAmt*fxRate;originalAmount=origAmt;
   }
+  // Validate custom splits
+  let splits=null;
+  if(_splitMode==='custom'){
+    const sum=+Object.values(_splitAmts).reduce((s,v)=>s+v,0).toFixed(2);
+    if(Math.abs(sum-amount)>0.05)return toast('Split total ('+fmtSGD(sum)+') must equal '+fmtSGD(amount),true);
+    splits=Object.fromEntries(Object.entries(_splitAmts).map(([k,v])=>[k,+v.toFixed(2)]));
+  }
   const btn=$('add-expense-btn');btn.textContent='Saving…';btn.disabled=true;
   try{
     if(_editExpenseId){
       const idx=cur.expenses.findIndex(e=>e.id===_editExpenseId);
       if(idx>-1){
         const existing=cur.expenses[idx];
-        cur.expenses[idx]={...existing,desc,amount,currency,originalAmount,fxRate,paidBy,
+        cur.expenses[idx]={...existing,desc,amount,currency,originalAmount,fxRate,paidBy,splits,
           receiptUrl:_receiptUrl||existing.receiptUrl||null};
       }
       toast('Expense updated ✓');
     }else{
-      cur.expenses.push({id:uuid(),desc,amount,currency,originalAmount,fxRate,paidBy,at:new Date().toISOString(),receiptUrl:_receiptUrl||null});
+      cur.expenses.push({id:uuid(),desc,amount,currency,originalAmount,fxRate,paidBy,splits,
+        at:new Date().toISOString(),receiptUrl:_receiptUrl||null});
       toast('Expense added ✓');
     }
     await pushTrip(cur);closeModal('modal-expense');renderExpenses();renderTripMeta();
@@ -732,7 +869,16 @@ function calcBalances(){
   const ids=Object.keys(cur.members||{});
   const b=Object.fromEntries(ids.map(id=>[id,0]));
   (cur.expenses||[]).forEach(e=>{
-    const share=e.amount/ids.length;ids.forEach(id=>b[id]-=share);
+    // debit each person their share
+    if(e.splits&&Object.keys(e.splits).length){
+      for(const [id,share] of Object.entries(e.splits)){
+        if(b[id]!==undefined)b[id]-=share;
+      }
+    }else{
+      const share=e.amount/Math.max(ids.length,1);
+      ids.forEach(id=>b[id]-=share);
+    }
+    // credit the payer for the full amount
     if(b[e.paidBy]!==undefined)b[e.paidBy]+=e.amount;
   });
   (cur.settlements||[]).filter(s=>s.status==='paid').forEach(s=>{
@@ -793,16 +939,26 @@ function openSettleModal(s,declarationOnly=false){
     <div class="center"><span class="avatar av-lg" style="background:${avCol(s.to)}">${esc(initials(tn))}</span><div class="small muted mt4">${esc(tn)}</div></div>
   </div><div class="settle-amount">${fmtSGD(s.amount)}</div>`;
   if(hasPN){
-    html+=`<div class="center mt12"><div class="small muted" style="margin-bottom:10px">Scan with any PayNow-enabled banking app</div>
-      <canvas id="qr-canvas" style="border-radius:10px;display:block;margin:0 auto"></canvas>
-      <div class="small muted mt8">PayNow: <b>${esc(toM.paynowProxy)}</b></div></div>`;
+    html+=`<div class="center mt12">
+      <div class="small muted" style="margin-bottom:10px">Scan with any PayNow-enabled banking app</div>
+      <div id="qr-container" style="display:flex;justify-content:center;border-radius:10px;overflow:hidden"></div>
+      <div class="small muted mt8">PayNow: <b>${esc(toM.paynowProxy)}</b></div>
+    </div>`;
     $('settle-modal-body').innerHTML=html;
     setTimeout(()=>{
       try{
-        QRCode.toCanvas($('qr-canvas'),buildPayNowQR(toM.paynowProxy,toM.paynowType||'2',s.amount,tn),
-          {width:220,margin:2,color:{dark:cfg.theme==='dark'?'#e4f2eb':'#085041',light:cfg.theme==='dark'?'#112019':'#ffffff'}});
-      }catch(e){$('qr-canvas').outerHTML=`<div class="small bad">QR error: ${esc(e.message)}</div>`}
-    },50);
+        const isDark=cfg.theme==='dark';
+        new QRCode($('qr-container'),{
+          text:buildPayNowQR(toM.paynowProxy,toM.paynowType||'2',s.amount,tn),
+          width:220,height:220,
+          colorDark:isDark?'#e4f2eb':'#085041',
+          colorLight:isDark?'#112019':'#ffffff',
+          correctLevel:QRCode.CorrectLevel.M
+        });
+      }catch(e){
+        $('qr-container').innerHTML=`<div class="small bad">QR error: ${esc(e.message)}</div>`;
+      }
+    },60);
   }else{
     html+=`<div class="card mt12" style="background:var(--accent-light);border:0;text-align:center">
       <div class="muted small">Click "Mark as Paid" once ${esc(fn)} has settled with ${esc(tn)}.</div></div>`;
