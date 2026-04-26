@@ -55,3 +55,23 @@ Fixes:
 
 Status:
 - Completed. Awaiting user approval for Cycle 3.
+
+## Cycle 3
+Focus:
+- Clean second-session join flow against shared Worker.
+- Foreign-currency expense entry and FX fallback behavior.
+- Pull joined-session changes back into the first session.
+
+Findings:
+- C3-F1: Clean second session successfully joined trip code 5B2OYE and appeared as a third member.
+- C3-F2: Second session added MYR expense `Cycle 3 nasi lemak`; first session pulled it by rejoining the code and saw updated balances.
+- C3-F3: FX fallback originally converted MYR at 1:1 when the browser blocked the third-party rate request, overstating RM20 as S$20.
+- C3-F4: Local browser UAT also surfaced avoidable console noise from the missing favicon and blocked FX request.
+
+Fixes:
+- C3-X1: Added explicit editable fallback estimates for supported foreign currencies instead of defaulting unknown FX to 1.
+- C3-X2: Expanded expense currency choices to match more of the trip currency dropdown.
+- C3-X3: Avoided blocked third-party FX calls in the fallback path and added an inline favicon to keep console output clean.
+
+Status:
+- Local fix verification passed on trip 5B2OYE with clean console logs. Awaiting push/live GitHub Pages UAT approval.
