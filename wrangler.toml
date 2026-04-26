@@ -1,0 +1,6 @@
+name = "splitlah-api"
+main = "worker.js"
+compatibility_date = "2026-04-26"
+
+[observability]
+enabled = true

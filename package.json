@@ -1,0 +1,15 @@
+{
+  "name": "splitlah-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "deploy:worker": "wrangler deploy",
+    "dev:worker": "wrangler dev"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.0.1"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
