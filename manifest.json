@@ -1,0 +1,14 @@
+{
+  "name": "SplitLah",
+  "short_name": "SplitLah",
+  "description": "Split trip expenses with friends, the Singapore way.",
+  "start_url": "/splitlah/",
+  "scope": "/splitlah/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#085041",
+  "theme_color": "#085041",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
