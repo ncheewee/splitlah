@@ -217,7 +217,11 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <select class="field" style="width:auto;padding:6px 28px 6px 10px" id="set-currency" onchange="setTripCurrency(this.value)">
             <option value="SGD">SGD</option><option value="USD">USD</option><option value="EUR">EUR</option>
             <option value="GBP">GBP</option><option value="JPY">JPY</option><option value="AUD">AUD</option>
-            <option value="MYR">MYR</option><option value="THB">THB</option>
+            <option value="MYR">MYR</option><option value="THB">THB</option><option value="VND">VND</option>
+            <option value="KRW">KRW</option><option value="HKD">HKD</option><option value="CNY">CNY</option>
+            <option value="TWD">TWD</option><option value="IDR">IDR</option><option value="PHP">PHP</option>
+            <option value="INR">INR</option><option value="NZD">NZD</option><option value="CAD">CAD</option>
+            <option value="CHF">CHF</option><option value="AED">AED</option><option value="BRL">BRL</option>
           </select>
         </div>
       </div>
@@ -256,7 +260,22 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <option value="3">NRIC / FIN</option>
       </select>
     </div>
-    <div class="row" style="gap:9px;margin-top:6px">
+    <div class="fg mt12" style="border-top:1px solid var(--border);padding-top:12px">
+      <label class="label">Device ID <span class="pill pill-gray">cross-device</span></label>
+      <div class="row" style="gap:8px">
+        <input id="prof-uid-display" class="field" style="font-family:monospace;font-size:.75rem;color:var(--text2)" readonly>
+        <button class="btn btn-outline btn-sm" onclick="copyUID()" style="white-space:nowrap;flex-shrink:0">Copy</button>
+      </div>
+      <div class="small muted mt4">Copy this ID to another device to appear as the same person in shared trips.</div>
+      <div class="mt8">
+        <label class="label">Use ID from another device</label>
+        <div class="row" style="gap:8px">
+          <input id="prof-uid-import" class="field" style="font-family:monospace;font-size:.75rem" placeholder="Paste Device ID here">
+          <button class="btn btn-outline btn-sm" onclick="importUID()" style="white-space:nowrap;flex-shrink:0">Apply</button>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="gap:9px;margin-top:12px">
       <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-profile')">Cancel</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveProfile()">Save Profile</button>
     </div>
@@ -293,9 +312,43 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="fg">
         <label class="label">Currency</label>
         <select id="e-currency" class="field" onchange="onCurrencyChange()">
-          <option value="SGD">SGD</option><option value="USD">USD</option><option value="EUR">EUR</option>
-          <option value="GBP">GBP</option><option value="JPY">JPY</option><option value="AUD">AUD</option>
-          <option value="MYR">MYR</option><option value="THB">THB</option>
+          <optgroup label="Southeast Asia">
+          <option value="SGD">SGD – Singapore Dollar</option>
+          <option value="MYR">MYR – Malaysian Ringgit</option>
+          <option value="THB">THB – Thai Baht</option>
+          <option value="VND">VND – Vietnamese Dong</option>
+          <option value="IDR">IDR – Indonesian Rupiah</option>
+          <option value="PHP">PHP – Philippine Peso</option>
+          <option value="MMK">MMK – Myanmar Kyat</option>
+          <option value="KHR">KHR – Cambodian Riel</option>
+          <option value="BND">BND – Brunei Dollar</option>
+          </optgroup>
+          <optgroup label="East Asia">
+          <option value="JPY">JPY – Japanese Yen</option>
+          <option value="KRW">KRW – Korean Won</option>
+          <option value="CNY">CNY – Chinese Yuan</option>
+          <option value="HKD">HKD – Hong Kong Dollar</option>
+          <option value="TWD">TWD – Taiwan Dollar</option>
+          </optgroup>
+          <optgroup label="South Asia">
+          <option value="INR">INR – Indian Rupee</option>
+          <option value="LKR">LKR – Sri Lanka Rupee</option>
+          <option value="BDT">BDT – Bangladeshi Taka</option>
+          <option value="NPR">NPR – Nepalese Rupee</option>
+          </optgroup>
+          <optgroup label="Major World">
+          <option value="USD">USD – US Dollar</option>
+          <option value="EUR">EUR – Euro</option>
+          <option value="GBP">GBP – British Pound</option>
+          <option value="AUD">AUD – Australian Dollar</option>
+          <option value="NZD">NZD – New Zealand Dollar</option>
+          <option value="CAD">CAD – Canadian Dollar</option>
+          <option value="CHF">CHF – Swiss Franc</option>
+          <option value="AED">AED – UAE Dirham</option>
+          <option value="SAR">SAR – Saudi Riyal</option>
+          <option value="ZAR">ZAR – South African Rand</option>
+          <option value="BRL">BRL – Brazilian Real</option>
+          </optgroup>
         </select>
       </div>
     </div>
@@ -380,7 +433,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // STATE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const VER='v2.2';
+const VER='v2.3';
 const LS_CFG='sl_cfg_v2',LS_TRIPS='sl_trips_v2',LS_FX='sl_fx_v2';
 const AV_COLORS=['#085041','#1D9E75','#0F6E56','#5B6BB5','#C05C2C','#7B4BAD','#B88000','#B54064','#2E7DAB'];
 const DEFAULT_API='https://splitlah-api.ncheewee.workers.dev';
@@ -426,7 +479,10 @@ function applyTheme(t){
 }
 function toggleTheme(){applyTheme(cfg.theme==='dark'?'light':'dark')}
 function applyFontSize(sz){
-  cfg.fontSize=sz;document.documentElement.style.setProperty('--fs',sz+'px');
+  cfg.fontSize=sz;
+  // Set root font-size so all rem-based sizes scale correctly
+  document.documentElement.style.fontSize=sz+'px';
+  document.documentElement.style.setProperty('--fs',sz+'px');
   $('font-size-label')&&($('font-size-label').textContent=sz+'px');
   $('font-slider')&&($('font-slider').value=sz);
   saveCfg();
@@ -451,9 +507,12 @@ async function apiCall(path,method='GET',body){
   if(!r.ok)throw new Error(j.error||'API '+r.status);
   return j;
 }
-async function pushTrip(t){
+async function pushTrip(t,silent=false){
   t.updated_at=new Date().toISOString();trips[t.code]=t;saveTrips();
-  if(cfg.api){try{await apiCall('/trips/'+t.code,'PUT',t)}catch{}}
+  if(cfg.api){
+    try{await apiCall('/trips/'+t.code,'PUT',t)}
+    catch(e){if(!silent)toast('Saved locally — sync failed: '+e.message,true)}
+  }
 }
 async function pullTrip(code){
   const j=await apiCall('/trips/'+code);
@@ -479,7 +538,7 @@ function goHome(){curCode=null;cur=null;renderHome();showScreen('screen-home')}
 function openTrip(code){
   curCode=code;cur=trips[code];
   cur.settlements=cur.settlements||[];cur.expenses=cur.expenses||[];cur.members=cur.members||{};
-  showScreen('screen-trip');showTab('expenses');renderTripMeta();
+  showScreen('screen-trip');showTab('dashboard');renderTripMeta();
 }
 
 let _activeTab='expenses';
@@ -516,7 +575,32 @@ function openProfileModal(){
   $('prof-name').value=cfg.name;
   $('prof-paynow').value=cfg.paynow||'';
   $('prof-paynow-type').value=cfg.paynowType||'2';
+  $('prof-uid-display').value=uid;
+  $('prof-uid-import').value='';
   openModal('modal-profile');
+}
+function copyUID(){
+  navigator.clipboard.writeText(uid).then(()=>toast('Device ID copied ✓')).catch(()=>toast(uid));
+}
+function importUID(){
+  const val=($('prof-uid-import').value||'').trim();
+  if(!val)return toast('Paste a Device ID first');
+  if(val===uid)return toast('That\'s already your Device ID');
+  if(!confirm('Switch to Device ID: '+val+'?\n\nYour local trips will be re-linked to this identity. This cannot be undone easily.'))return;
+  const oldUid=uid;
+  localStorage.sl_uid=val;
+  uid=val;
+  // Re-link memberships in local trips
+  for(const t of Object.values(trips)){
+    if(t.members?.[oldUid]){
+      t.members[val]=t.members[oldUid];
+      delete t.members[oldUid];
+      pushTrip(t);
+    }
+  }
+  $('prof-uid-display').value=uid;
+  $('prof-uid-import').value='';
+  toast('Device ID updated ✓ — you now appear as the same person');
 }
 function saveProfile(){
   const name=$('prof-name').value.trim();
@@ -600,6 +684,23 @@ async function promptJoinTrip(){
     toast('Looking up…');
     const t=await pullTrip(code);
     if(!t.members[uid]){
+      // Check for a name match — maybe this user already exists under a different device ID
+      const myName=(cfg.name||'').toLowerCase().trim();
+      const match=myName?Object.entries(t.members).find(([id,m])=>{
+        return id!==uid&&(normM(m,id).name||'').toLowerCase().trim()===myName;
+      }):null;
+      if(match){
+        const[existingId,existingM]=match;
+        const claim=confirm(`"${normM(existingM,existingId).name}" already exists in this trip.\n\nAre you this person on a different device?\n\nYes = link your identity (recommended)\nNo = join as a new member`);
+        if(claim){
+          // Re-key: make our uid point to the existing member data, remove old key
+          t.members[uid]=t.members[existingId];
+          delete t.members[existingId];
+          if(cfg.paynow){t.members[uid].paynowProxy=cfg.paynow;t.members[uid].paynowType=cfg.paynowType}
+          await pushTrip(t);
+          openTrip(code);return;
+        }
+      }
       t.members[uid]={name:cfg.name||'Me',avatarColor:avCol(uid),...(cfg.paynow?{paynowProxy:cfg.paynow,paynowType:cfg.paynowType}:{})};
       await pushTrip(t);
     }
@@ -773,16 +874,34 @@ async function fetchFxRate(from){
     $('fx-status').textContent=`1 ${from} = ${cached.rate.toFixed(4)} SGD (cached)`;
     updateFxConvert();return cached.rate;
   }
-  try{
-    const res=await fetch(`https://api.frankfurter.app/latest?from=${from}&to=SGD`);
-    if(!res.ok)throw new Error('HTTP '+res.status);
-    const data=await res.json();
-    const rate=data.rates?.SGD;if(!rate)throw new Error('no SGD rate');
-    fxCache[key]={rate,ts:Date.now()};saveFx();
-    $('e-fx-rate').value=rate.toFixed(4);
-    $('fx-status').textContent=`1 ${from} = ${rate.toFixed(4)} SGD (live · ${data.date})`;
-    updateFxConvert();return rate;
-  }catch(e){$('fx-status').textContent='Rate unavailable — enter manually'}
+  // Try frankfurter (limited currencies) then open.er-api (broader, incl. VND)
+  const attempts=[
+    async()=>{
+      const r=await fetch(`https://api.frankfurter.app/latest?from=${from}&to=SGD`);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const d=await r.json();
+      if(!d.rates?.SGD)throw new Error('unsupported');
+      return{rate:d.rates.SGD,date:d.date};
+    },
+    async()=>{
+      const r=await fetch(`https://open.er-api.com/v6/latest/${from}`);
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const d=await r.json();
+      if(!d.rates?.SGD)throw new Error('no SGD rate');
+      const date=(d.time_last_update_utc||'').slice(0,16)||'recent';
+      return{rate:d.rates.SGD,date};
+    }
+  ];
+  for(const attempt of attempts){
+    try{
+      const{rate,date}=await attempt();
+      fxCache[key]={rate,ts:Date.now()};saveFx();
+      $('e-fx-rate').value=rate.toFixed(4);
+      $('fx-status').textContent=`1 ${from} = ${rate.toFixed(4)} SGD (live · ${date})`;
+      updateFxConvert();return rate;
+    }catch{}
+  }
+  $('fx-status').textContent='Rate unavailable — enter manually';
 }
 async function refreshFxRate(){const c=$('e-currency').value;if(c==='SGD')return;delete fxCache[c+'_SGD'];saveFx();await fetchFxRate(c)}
 function updateFxConvert(){
