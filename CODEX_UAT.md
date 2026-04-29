@@ -345,6 +345,10 @@ Findings:
 - C14-F4: New trip modal now uses neutral placeholder `Weekend trip` and join code placeholder `ABC123`.
 - C14-F5: Currency selector displayed country/region labels including `SGD - Singapore`, `MYR - Malaysia`, and `VND - Vietnam`.
 - C14-F6: Local console warning/error check was clean after migration, profile, and currency label verification.
+- C14-F7: GitHub Pages first build for commit `579a6aa` failed transiently, then a retried build of the same commit succeeded.
+- C14-F8: Live smoke showed the existing Chee Wee browser storage migrated to `No trips yet`, preserving the profile while clearing old local test trips.
+- C14-F9: Live profile showed neutral PayNow placeholder `+65 mobile or NRIC`, and live new-trip currency selector showed country/region labels including `VND - Vietnam`.
+- C14-F10: Live console warning/error check was clean after migration, profile, and new-trip checks.
 
 Fixes:
 - C14-X1: Added `APP_VERSION=14` and a local migration hook that runs before rendering.
@@ -354,4 +358,4 @@ Fixes:
 - C14-X5: Currency options now show `CODE - Country/Region` labels while preserving the stored currency code value.
 
 Status:
-- Code changes verified locally. Ready for commit, push, and live smoke verification.
+- Completed. Local migration and UI copy changes committed, pushed, and live-smoke verified.
