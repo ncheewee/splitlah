@@ -191,3 +191,26 @@ Fixes:
 
 Status:
 - Completed. UAT plan items exercised through live public Codex checks.
+
+## Cycle 9
+Focus:
+- Address first-visit/local identity management without adding backend schema or real auth.
+- Fix profile rename propagation so changing a device name updates that device's member rows in known trips.
+- Add a low-friction join choice so users can claim an existing member instead of creating duplicates.
+
+Findings:
+- C9-F1: Pixel 8 UAT found that changing `Your name` in Cloud settings only updated local profile state, not the existing member row inside joined trips.
+- C9-F2: Current no-auth model creates one local `uid` per browser/device, so the same person can appear as duplicate members when joining from multiple devices.
+- C9-F3: Local static verification confirmed the renamed `Profile & cloud` control opens correctly.
+- C9-F4: Local static verification changed profile name from `Chee Wee` to `Pixel 8`; trip card avatar changed to `P8` and Members tab showed `Pixel 8` with `You · This device`.
+- C9-F5: Local static verification of joining trip `5B2OYE` showed a `Join Cycle 3 Codex` choice sheet with `This is me` actions for existing members and a `Join as new person` fallback.
+- C9-F6: Local console warning/error check was clean after profile rename and join-choice verification.
+
+Fixes:
+- C9-X1: Renamed `Cloud settings` to `Profile & cloud`.
+- C9-X2: `saveSettings()` now updates `members[state.uid].name` across locally known trips and pushes touched trips to the Worker.
+- C9-X3: Join flow now pulls the trip and, when the current local identity is not already a member, asks whether the user is an existing member before adding a new member.
+- C9-X4: Members list labels the current local identity as `You · This device`.
+
+Status:
+- Local verification passed. Awaiting commit, push, and live GitHub Pages verification.
