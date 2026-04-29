@@ -270,3 +270,28 @@ Fixes:
 
 Status:
 - Completed. Beta-readiness controls committed, pushed, and live-smoke verified.
+
+## Cycle 12
+Focus:
+- Refine expense splitting based on beta feedback.
+- Replace split-mode dropdown friction with radio-style choices.
+- Improve currency and sharing options for friend distribution.
+
+Findings:
+- C12-F1: Three split modes better match real expense entry: equal for everyone, equal among selected people, and custom manual amounts.
+- C12-F2: Native browser dropdown styling looked out of place beside the app's dark rounded controls.
+- C12-F3: Currency coverage was practical but missing VND and several common travel currencies.
+- C12-F4: Local UAT on trip `R4EWGL` added `Selected drinks` for S$30 split only to the selected payer; total rose to S$153 and the payer share rose to S$91.50 as expected.
+- C12-F5: Share sheet displayed native share, copy link, WhatsApp, and email options with invite URL `http://127.0.0.1:8765/?join=R4EWGL`.
+- C12-F6: Local console warning/error check was clean after selected split and share-sheet verification.
+
+Fixes:
+- C12-X1: Replaced split dropdown with app-styled radio controls for `Equal`, `Selected`, and `Custom`.
+- C12-X2: Added checkbox member selection for equal-among-selected splits.
+- C12-X3: Persisted split mode metadata while keeping old equal and custom expenses backwards-compatible.
+- C12-X4: Added VND plus PHP, CNY, NZD, CAD, CHF, and INR to the practical currency list with fallback SG estimates.
+- C12-X5: Styled native selects with the app's field treatment and custom arrow affordance.
+- C12-X6: Added native share, WhatsApp, and email share actions alongside copy link.
+
+Status:
+- Code changes verified locally. Ready for commit, push, and live smoke verification.
