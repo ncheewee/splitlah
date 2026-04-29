@@ -284,6 +284,8 @@ Findings:
 - C12-F4: Local UAT on trip `R4EWGL` added `Selected drinks` for S$30 split only to the selected payer; total rose to S$153 and the payer share rose to S$91.50 as expected.
 - C12-F5: Share sheet displayed native share, copy link, WhatsApp, and email options with invite URL `http://127.0.0.1:8765/?join=R4EWGL`.
 - C12-F6: Local console warning/error check was clean after selected split and share-sheet verification.
+- C12-F7: Live GitHub Pages smoke showed VND in the currency list, `Equal` / `Selected` / `Custom` radio split modes, and live share options for native share, copy, WhatsApp, and email.
+- C12-F8: Live console warning/error check was clean after opening Expenses and Share trip.
 
 Fixes:
 - C12-X1: Replaced split dropdown with app-styled radio controls for `Equal`, `Selected`, and `Custom`.
@@ -294,4 +296,35 @@ Fixes:
 - C12-X6: Added native share, WhatsApp, and email share actions alongside copy link.
 
 Status:
-- Code changes verified locally. Ready for commit, push, and live smoke verification.
+- Completed. Split-mode and sharing refinements committed, pushed, and live-smoke verified.
+
+## Cycle 13
+Focus:
+- Reduce beta clutter and make identity, ownership, and trip management clearer.
+- Hide trips where the current device identity is not a member.
+- Move Dashboard to the left-most tab and make Share trip invoke the OS share action directly.
+
+Findings:
+- C13-F1: Home was showing every locally cached trip, including `Tokyo Trip`, even when the current device identity was not a member.
+- C13-F2: `Profile & cloud` mixed user identity settings with backend configuration, which was confusing for beta users.
+- C13-F3: Trip ownership was not visible, so users could not tell who should be allowed to manage or delete a trip.
+- C13-F4: Local UAT showed the home screen now lists only the current user's trip `R4EWGL`; `Tokyo Trip` was hidden for the active `Fresh Tester` identity.
+- C13-F5: Local UAT showed `Edit profile` beside the user greeting and the profile sheet only contains name and PayNow fields.
+- C13-F6: Local UAT showed Dashboard as the first tab, followed by Expenses, Balances, and Members.
+- C13-F7: Local UAT showed owner indicators on the trip card, trip header, and current owner member row.
+- C13-F8: Local UAT showed owner-only `Edit trip` and `Delete trip` controls on the Members tab.
+- C13-F9: Local UAT showed `Share trip` no longer opens an intermediate share sheet; it invokes native share and falls back to copy.
+- C13-F10: Local console warning/error check was clean after home, profile, trip, members, and share checks.
+
+Fixes:
+- C13-X1: Home now filters to non-deleted trips where `state.uid` is a member.
+- C13-X2: New trips store `ownerId`; legacy trips infer owner from the first member for backwards compatibility.
+- C13-X3: Owner labels now appear in trip cards, the trip header, and member rows.
+- C13-X4: Added owner-only trip rename/currency edit and soft-delete controls.
+- C13-X5: Soft-deleted trips are hidden and old invite links are treated as deleted without changing backend schema.
+- C13-X6: Replaced `Profile & cloud` with `Edit profile` beside the greeting and removed visible Worker/API settings from the profile sheet.
+- C13-X7: Reordered tabs to Dashboard, Expenses, Balances, Members.
+- C13-X8: Changed `Share trip` to launch native OS sharing directly with copy fallback.
+
+Status:
+- Code changes verified locally. Cloud purge still requires explicit deletion confirmation before proceeding.
