@@ -103,16 +103,13 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 .empty-title{font-weight:600;font-size:.93rem;color:var(--text);margin-bottom:5px}
 .empty-msg{font-size:.82rem}
 .sec-hd{font-size:.72rem;font-weight:700;color:var(--text3);letter-spacing:.06em;text-transform:uppercase;margin:14px 0 8px}
-
-/* split segment control */
+/* split segment */
 .split-seg{display:flex;background:var(--surface2);border-radius:8px;padding:3px;gap:2px;margin-bottom:10px}
-.split-tab{flex:1;padding:8px 4px;border-radius:6px;font-size:.8rem;font-weight:600;background:transparent;color:var(--text2);border:0;cursor:pointer;transition:all .15s}
+.split-tab{flex:1;padding:8px 4px;border-radius:6px;font-size:.78rem;font-weight:600;background:transparent;color:var(--text2);border:0;cursor:pointer;transition:all .15s}
 .split-tab.active{background:var(--accent);color:#fff}
 .split-row{display:flex;align-items:center;gap:9px;margin-bottom:8px}
-.split-row input.field{width:88px;padding:7px 8px;font-size:.85rem;text-align:right;flex-shrink:0}
 .split-footer{display:flex;align-items:center;justify-content:space-between;padding:9px 0 2px;border-top:1px solid var(--border);margin-top:4px}
-
-/* ── WELCOME SCREEN ── */
+/* welcome */
 .welcome-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px;background:var(--primary)}
 .welcome-icon{width:72px;height:72px;border-radius:20px;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:2.2rem;margin:0 auto 20px}
 .welcome-title{font-size:2rem;font-weight:700;color:#fff;margin-bottom:8px;text-align:center}
@@ -127,7 +124,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <body>
 <div class="app">
 
-  <!-- ══ WELCOME (first run) ══ -->
+  <!-- ══ WELCOME ══ -->
   <div id="screen-welcome" class="hide">
     <div class="welcome-wrap">
       <div class="welcome-icon">✈️</div>
@@ -148,7 +145,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
       <div class="header-row">
         <div class="grow">
           <div class="logo">SplitLah <span class="logo-badge">CLAUDE</span></div>
-          <div class="logo-sub" id="home-sub">v2.2</div>
+          <div class="logo-sub" id="home-sub">v2.3</div>
         </div>
         <button class="hbtn" onclick="toggleTheme()" id="theme-btn-home">☀</button>
         <button class="hbtn" onclick="openProfileModal()">👤</button>
@@ -172,18 +169,25 @@ input[type=range]{width:100%;accent-color:var(--accent)}
           <div class="logo" id="trip-header-name" style="font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
           <div class="logo-sub" id="trip-header-meta"></div>
         </div>
+        <button class="hbtn" onclick="shareTrip()" title="Share trip">🔗</button>
         <button class="hbtn" onclick="toggleTheme()" id="theme-btn-trip">☀</button>
         <button class="hbtn" onclick="syncTrip()">↻</button>
       </div>
     </div>
     <div class="tabs">
-      <button class="tab-btn active" onclick="showTab('expenses')">Expenses</button>
+      <button class="tab-btn active" onclick="showTab('dashboard')">Dashboard</button>
+      <button class="tab-btn" onclick="showTab('expenses')">Expenses</button>
       <button class="tab-btn" onclick="showTab('balances')">Balances</button>
       <button class="tab-btn" onclick="showTab('members')">Members</button>
-      <button class="tab-btn" onclick="showTab('dashboard')">Dashboard</button>
       <button class="tab-btn" onclick="showTab('settings')">Settings</button>
     </div>
-    <div id="tab-expenses" class="body">
+    <div id="tab-dashboard" class="body">
+      <div class="stat-grid" id="dash-stats"></div>
+      <div class="chart-card"><div class="chart-title">Spending by Person</div><canvas id="chart-donut" height="210"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Net Balance</div><canvas id="chart-bar" height="190"></canvas></div>
+      <div class="chart-card"><div class="chart-title">Daily Spending</div><canvas id="chart-line" height="170"></canvas></div>
+    </div>
+    <div id="tab-expenses" class="body hide">
       <button class="btn btn-primary btn-wide" onclick="openExpenseModal()">＋ Add Expense</button>
       <div id="expense-list" class="mt12"></div>
     </div>
@@ -194,12 +198,6 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div id="tab-members" class="body hide">
       <button class="btn btn-secondary btn-wide" onclick="openAddMemberModal()">＋ Add Member</button>
       <div id="member-list" class="mt12"></div>
-    </div>
-    <div id="tab-dashboard" class="body hide">
-      <div class="stat-grid" id="dash-stats"></div>
-      <div class="chart-card"><div class="chart-title">Spending by Person</div><canvas id="chart-donut" height="210"></canvas></div>
-      <div class="chart-card"><div class="chart-title">Net Balance</div><canvas id="chart-bar" height="190"></canvas></div>
-      <div class="chart-card"><div class="chart-title">Daily Spending</div><canvas id="chart-line" height="170"></canvas></div>
     </div>
     <div id="tab-settings" class="body hide">
       <div class="card">
@@ -215,13 +213,13 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <div class="set-row">
           <div class="bold small">Base Currency</div>
           <select class="field" style="width:auto;padding:6px 28px 6px 10px" id="set-currency" onchange="setTripCurrency(this.value)">
-            <option value="SGD">SGD</option><option value="USD">USD</option><option value="EUR">EUR</option>
-            <option value="GBP">GBP</option><option value="JPY">JPY</option><option value="AUD">AUD</option>
-            <option value="MYR">MYR</option><option value="THB">THB</option><option value="VND">VND</option>
-            <option value="KRW">KRW</option><option value="HKD">HKD</option><option value="CNY">CNY</option>
-            <option value="TWD">TWD</option><option value="IDR">IDR</option><option value="PHP">PHP</option>
-            <option value="INR">INR</option><option value="NZD">NZD</option><option value="CAD">CAD</option>
-            <option value="CHF">CHF</option><option value="AED">AED</option><option value="BRL">BRL</option>
+            <option value="SGD">SGD</option><option value="MYR">MYR</option><option value="THB">THB</option>
+            <option value="VND">VND</option><option value="IDR">IDR</option><option value="PHP">PHP</option>
+            <option value="JPY">JPY</option><option value="KRW">KRW</option><option value="CNY">CNY</option>
+            <option value="HKD">HKD</option><option value="TWD">TWD</option><option value="INR">INR</option>
+            <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+            <option value="AUD">AUD</option><option value="NZD">NZD</option><option value="CAD">CAD</option>
+            <option value="CHF">CHF</option><option value="AED">AED</option>
           </select>
         </div>
       </div>
@@ -252,7 +250,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div class="modal-handle"></div>
     <div class="modal-title">Your Profile</div>
     <div class="fg"><label class="label">Your Name</label><input id="prof-name" class="field" placeholder="e.g. Chee Wee"></div>
-    <div class="fg"><label class="label">PayNow Proxy</label><input id="prof-paynow" class="field" placeholder="+6597605390 or NRIC"></div>
+    <div class="fg"><label class="label">PayNow Proxy</label><input id="prof-paynow" class="field" placeholder="+65 mobile or NRIC/FIN"></div>
     <div class="fg">
       <label class="label">PayNow Type</label>
       <select id="prof-paynow-type" class="field">
@@ -313,41 +311,35 @@ input[type=range]{width:100%;accent-color:var(--accent)}
         <label class="label">Currency</label>
         <select id="e-currency" class="field" onchange="onCurrencyChange()">
           <optgroup label="Southeast Asia">
-          <option value="SGD">SGD – Singapore Dollar</option>
-          <option value="MYR">MYR – Malaysian Ringgit</option>
-          <option value="THB">THB – Thai Baht</option>
-          <option value="VND">VND – Vietnamese Dong</option>
-          <option value="IDR">IDR – Indonesian Rupiah</option>
-          <option value="PHP">PHP – Philippine Peso</option>
-          <option value="MMK">MMK – Myanmar Kyat</option>
-          <option value="KHR">KHR – Cambodian Riel</option>
-          <option value="BND">BND – Brunei Dollar</option>
+            <option value="SGD">SGD – Singapore Dollar</option>
+            <option value="MYR">MYR – Malaysian Ringgit</option>
+            <option value="THB">THB – Thai Baht</option>
+            <option value="VND">VND – Vietnamese Dong</option>
+            <option value="IDR">IDR – Indonesian Rupiah</option>
+            <option value="PHP">PHP – Philippine Peso</option>
+            <option value="BND">BND – Brunei Dollar</option>
           </optgroup>
           <optgroup label="East Asia">
-          <option value="JPY">JPY – Japanese Yen</option>
-          <option value="KRW">KRW – Korean Won</option>
-          <option value="CNY">CNY – Chinese Yuan</option>
-          <option value="HKD">HKD – Hong Kong Dollar</option>
-          <option value="TWD">TWD – Taiwan Dollar</option>
+            <option value="JPY">JPY – Japanese Yen</option>
+            <option value="KRW">KRW – Korean Won</option>
+            <option value="CNY">CNY – Chinese Yuan</option>
+            <option value="HKD">HKD – Hong Kong Dollar</option>
+            <option value="TWD">TWD – Taiwan Dollar</option>
           </optgroup>
           <optgroup label="South Asia">
-          <option value="INR">INR – Indian Rupee</option>
-          <option value="LKR">LKR – Sri Lanka Rupee</option>
-          <option value="BDT">BDT – Bangladeshi Taka</option>
-          <option value="NPR">NPR – Nepalese Rupee</option>
+            <option value="INR">INR – Indian Rupee</option>
+            <option value="LKR">LKR – Sri Lanka Rupee</option>
           </optgroup>
           <optgroup label="Major World">
-          <option value="USD">USD – US Dollar</option>
-          <option value="EUR">EUR – Euro</option>
-          <option value="GBP">GBP – British Pound</option>
-          <option value="AUD">AUD – Australian Dollar</option>
-          <option value="NZD">NZD – New Zealand Dollar</option>
-          <option value="CAD">CAD – Canadian Dollar</option>
-          <option value="CHF">CHF – Swiss Franc</option>
-          <option value="AED">AED – UAE Dirham</option>
-          <option value="SAR">SAR – Saudi Riyal</option>
-          <option value="ZAR">ZAR – South African Rand</option>
-          <option value="BRL">BRL – Brazilian Real</option>
+            <option value="USD">USD – US Dollar</option>
+            <option value="EUR">EUR – Euro</option>
+            <option value="GBP">GBP – British Pound</option>
+            <option value="AUD">AUD – Australian Dollar</option>
+            <option value="NZD">NZD – New Zealand Dollar</option>
+            <option value="CAD">CAD – Canadian Dollar</option>
+            <option value="CHF">CHF – Swiss Franc</option>
+            <option value="AED">AED – UAE Dirham</option>
+            <option value="ZAR">ZAR – South African Rand</option>
           </optgroup>
         </select>
       </div>
@@ -368,9 +360,16 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div class="fg">
       <label class="label">Split Among</label>
       <div class="split-seg">
-        <button id="split-eq-btn" class="split-tab active" onclick="setSplitMode('equal')">⚖ Equal</button>
-        <button id="split-cu-btn" class="split-tab" onclick="setSplitMode('custom')">✎ Custom</button>
+        <button id="split-eq-btn"  class="split-tab active" onclick="setSplitMode('equal')">⚖ Equal</button>
+        <button id="split-sel-btn" class="split-tab"        onclick="setSplitMode('selected')">☑ Selected</button>
+        <button id="split-cu-btn"  class="split-tab"        onclick="setSplitMode('custom')">✎ Custom</button>
       </div>
+      <!-- Selected mode -->
+      <div id="split-sel-ui" class="hide">
+        <div id="split-sel-rows"></div>
+        <div class="small muted mt4" style="margin-bottom:8px">Split equally among checked members only.</div>
+      </div>
+      <!-- Custom mode -->
       <div id="split-custom-ui" class="hide">
         <div id="split-rows"></div>
         <div class="split-footer">
@@ -382,7 +381,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 
     <div class="fg">
       <label class="label">Receipt <span class="pill pill-gray">optional</span></label>
-      <input type="file" id="e-receipt" accept="image/*" class="field" style="padding:7px" onchange="onReceiptSelected(this)">
+      <input type="file" id="e-receipt" accept="image/*" capture="environment" class="field" style="padding:7px" onchange="onReceiptSelected(this)">
       <img id="receipt-preview" alt="Receipt">
       <div id="upload-status" class="small muted mt4"></div>
     </div>
@@ -399,7 +398,7 @@ input[type=range]{width:100%;accent-color:var(--accent)}
     <div class="modal-handle"></div>
     <div class="modal-title" id="member-modal-title">Add Member</div>
     <div class="fg"><label class="label">Name</label><input id="m-name" class="field" placeholder="e.g. Sarah"></div>
-    <div class="fg"><label class="label">PayNow Proxy <span class="pill pill-gray">optional</span></label><input id="m-paynow" class="field" placeholder="+6597605390 or NRIC"></div>
+    <div class="fg"><label class="label">PayNow Proxy <span class="pill pill-gray">optional</span></label><input id="m-paynow" class="field" placeholder="+65 mobile or NRIC/FIN"></div>
     <div class="fg">
       <label class="label">PayNow Type</label>
       <select id="m-paynow-type" class="field">
@@ -431,34 +430,37 @@ input[type=range]{width:100%;accent-color:var(--accent)}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// STATE
+// CONSTANTS & STATE
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 const VER='v2.3';
 const LS_CFG='sl_cfg_v2',LS_TRIPS='sl_trips_v2',LS_FX='sl_fx_v2';
 const AV_COLORS=['#085041','#1D9E75','#0F6E56','#5B6BB5','#C05C2C','#7B4BAD','#B88000','#B54064','#2E7DAB'];
 const DEFAULT_API='https://splitlah-api.ncheewee.workers.dev';
+// FX fallback estimates (SGD) for when APIs are unavailable
+const FX_FALLBACK={MYR:0.295,THB:0.038,VND:0.000054,IDR:0.000085,PHP:0.024,BND:1.0,JPY:0.0089,KRW:0.00097,CNY:0.185,HKD:0.173,TWD:0.042,INR:0.016,LKR:0.0044,USD:1.35,EUR:1.46,GBP:1.73,AUD:0.87,NZD:0.81,CAD:0.99,CHF:1.53,AED:0.37,ZAR:0.073};
 
 let uid=localStorage.sl_uid||(localStorage.sl_uid='u_'+crypto.randomUUID());
 let cfg=sj(localStorage[LS_CFG],{name:'',api:DEFAULT_API,ikPublicKey:'',ikEndpoint:'',theme:'light',fontSize:15,paynow:'',paynowType:'2'});
-// Backfill default API for existing users who have empty api
 if(!cfg.api)cfg.api=DEFAULT_API;
 let trips=sj(localStorage[LS_TRIPS],{});
 let fxCache=sj(localStorage[LS_FX],{});
 let curCode=null,cur=null;
 let _charts={},_settleData=null,_receiptUrl=null,_editMemberId=null,_editExpenseId=null;
-let _splitMode='equal',_splitAmts={};
-let _toastTimer;
+let _splitMode='equal',_splitAmts={},_splitSelected={};
+let _toastTimer,_refreshInterval;
 
 function sj(s,d){try{return s?JSON.parse(s):d}catch{return d}}
 function $(id){return document.getElementById(id)}
 function esc(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
 function fmtSGD(n){return 'S$'+(+n||0).toFixed(2)}
-function fmtAmt(n,c){if(!c||c==='SGD')return fmtSGD(n);return c+' '+(+n||0).toFixed(c==='JPY'?0:2)}
+function fmtAmt(n,c){if(!c||c==='SGD')return fmtSGD(n);return c+' '+(+n||0).toFixed(['JPY','KRW','VND','IDR'].includes(c)?0:2)}
 function fmtDate(iso){return iso?new Date(iso).toLocaleDateString('en-SG',{day:'numeric',month:'short'}):''}
 function initials(n){return(n||'?').trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase()}
 function avCol(id){let h=0;for(const c of String(id))h=(h*31+c.charCodeAt(0))&0xffff;return AV_COLORS[h%AV_COLORS.length]}
 function uuid(){return crypto.randomUUID()}
 function randCode(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+// Normalize SG mobile: 8-digit → +65XXXXXXXX
+function normalizePN(v){v=(v||'').trim();return/^\d{8}$/.test(v)?'+65'+v:v}
 
 function toast(msg,err=false){
   const el=$('toast');el.textContent=msg;el.style.background=err?'#C93030':'var(--primary)';
@@ -480,8 +482,6 @@ function applyTheme(t){
 function toggleTheme(){applyTheme(cfg.theme==='dark'?'light':'dark')}
 function applyFontSize(sz){
   cfg.fontSize=sz;
-  // Set root font-size so all rem-based sizes scale correctly
-  document.documentElement.style.fontSize=sz+'px';
   document.documentElement.style.setProperty('--fs',sz+'px');
   $('font-size-label')&&($('font-size-label').textContent=sz+'px');
   $('font-slider')&&($('font-slider').value=sz);
@@ -501,7 +501,7 @@ function getMName(id){if(!cur?.members?.[id])return'?';return normM(cur.members[
 // API
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 async function apiCall(path,method='GET',body){
-  if(!cfg.api)throw new Error('API not configured — go to Settings → Edit API URL');
+  if(!cfg.api)throw new Error('API not configured');
   const r=await fetch(cfg.api+path,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
   const j=await r.json().catch(()=>({}));
   if(!r.ok)throw new Error(j.error||'API '+r.status);
@@ -509,10 +509,8 @@ async function apiCall(path,method='GET',body){
 }
 async function pushTrip(t,silent=false){
   t.updated_at=new Date().toISOString();trips[t.code]=t;saveTrips();
-  if(cfg.api){
-    try{await apiCall('/trips/'+t.code,'PUT',t)}
-    catch(e){if(!silent)toast('Saved locally — sync failed: '+e.message,true)}
-  }
+  if(cfg.api){try{const res=await apiCall('/trips/'+t.code,'PUT',t);if(res.trip)trips[t.code]=res.trip}
+    catch(e){if(!silent)toast('Saved locally — sync failed',true)}}
 }
 async function pullTrip(code){
   const j=await apiCall('/trips/'+code);
@@ -521,11 +519,25 @@ async function pullTrip(code){
 }
 async function syncTrip(){
   if(!curCode)return;
-  if(!cfg.api)return toast('No API configured — edit in Settings',true);
+  if(!cfg.api)return toast('No API configured',true);
   toast('Syncing…');
   try{cur=await pullTrip(curCode);renderTripMeta();renderActiveTab();toast('Synced ✓')}
   catch(e){toast('Sync failed: '+e.message,true)}
 }
+
+// Background auto-refresh every 12s
+function startBgRefresh(){
+  clearInterval(_refreshInterval);
+  if(!curCode||!cfg.api)return;
+  _refreshInterval=setInterval(async()=>{
+    if(document.querySelector('.modal-overlay.open'))return;
+    try{
+      const fresh=await pullTrip(curCode);
+      if(fresh.updated_at!==cur.updated_at){cur=fresh;renderTripMeta();renderActiveTab();}
+    }catch{}
+  },12000);
+}
+function stopBgRefresh(){clearInterval(_refreshInterval);_refreshInterval=null;}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // NAVIGATION
@@ -534,19 +546,27 @@ function showScreen(id){
   ['screen-welcome','screen-home','screen-trip'].forEach(s=>$(s).classList.add('hide'));
   $(id).classList.remove('hide');
 }
-function goHome(){curCode=null;cur=null;renderHome();showScreen('screen-home')}
+function goHome(){
+  stopBgRefresh();curCode=null;cur=null;renderHome();showScreen('screen-home');
+  // Handle ?join=CODE pending invite
+  const pending=sessionStorage.getItem('_pendingJoin');
+  if(pending){sessionStorage.removeItem('_pendingJoin');setTimeout(()=>joinByCode(pending),400);}
+}
 function openTrip(code){
   curCode=code;cur=trips[code];
   cur.settlements=cur.settlements||[];cur.expenses=cur.expenses||[];cur.members=cur.members||{};
   showScreen('screen-trip');showTab('dashboard');renderTripMeta();
+  // Pull fresh data then start background refresh
+  if(cfg.api)pullTrip(code).then(t=>{cur=t;renderTripMeta();renderActiveTab();}).catch(()=>{});
+  startBgRefresh();
 }
 
-let _activeTab='expenses';
+let _activeTab='dashboard';
 function showTab(name){
   _activeTab=name;
-  ['expenses','balances','members','dashboard','settings'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==name));
+  ['dashboard','expenses','balances','members','settings'].forEach(t=>$('tab-'+t).classList.toggle('hide',t!==name));
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('active',['expenses','balances','members','dashboard','settings'][i]===name);
+    b.classList.toggle('active',['dashboard','expenses','balances','members','settings'][i]===name);
   });
   renderActiveTab();
 }
@@ -559,13 +579,27 @@ function renderActiveTab(){
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// WELCOME / ONBOARDING
+// SHARE TRIP
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function shareTrip(){
+  const url=location.origin+location.pathname+'?join='+curCode;
+  const text='Join my trip "'+cur.name+'" on SplitLah — use code '+curCode;
+  if(navigator.share){
+    navigator.share({title:'Join '+cur.name+' on SplitLah',text,url}).catch(()=>{});
+  }else{
+    navigator.clipboard.writeText(url).then(()=>toast('Invite link copied ✓')).catch(()=>{
+      prompt('Copy this invite link:',url);
+    });
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// WELCOME
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function completeWelcome(){
   const name=$('welcome-name').value.trim();
   if(!name)return toast('Enter your name to continue');
-  cfg.name=name;saveCfg();
-  goHome();
+  cfg.name=name;saveCfg();goHome();
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -579,50 +613,39 @@ function openProfileModal(){
   $('prof-uid-import').value='';
   openModal('modal-profile');
 }
-function copyUID(){
-  navigator.clipboard.writeText(uid).then(()=>toast('Device ID copied ✓')).catch(()=>toast(uid));
-}
+function copyUID(){navigator.clipboard.writeText(uid).then(()=>toast('Device ID copied ✓')).catch(()=>toast(uid))}
 function importUID(){
   const val=($('prof-uid-import').value||'').trim();
   if(!val)return toast('Paste a Device ID first');
   if(val===uid)return toast('That\'s already your Device ID');
-  if(!confirm('Switch to Device ID: '+val+'?\n\nYour local trips will be re-linked to this identity. This cannot be undone easily.'))return;
-  const oldUid=uid;
-  localStorage.sl_uid=val;
-  uid=val;
-  // Re-link memberships in local trips
+  if(!confirm('Switch to Device ID:\n'+val+'\n\nThis re-links your trips to this identity.'))return;
+  const oldUid=uid;localStorage.sl_uid=val;uid=val;
   for(const t of Object.values(trips)){
-    if(t.members?.[oldUid]){
-      t.members[val]=t.members[oldUid];
-      delete t.members[oldUid];
-      pushTrip(t);
-    }
+    if(t.members?.[oldUid]){t.members[val]=t.members[oldUid];delete t.members[oldUid];pushTrip(t,true);}
   }
-  $('prof-uid-display').value=uid;
-  $('prof-uid-import').value='';
-  toast('Device ID updated ✓ — you now appear as the same person');
+  $('prof-uid-display').value=uid;$('prof-uid-import').value='';
+  toast('Device ID updated ✓');
 }
 function saveProfile(){
-  const name=$('prof-name').value.trim();
-  if(!name)return toast('Name cannot be empty');
+  const name=$('prof-name').value.trim();if(!name)return toast('Name cannot be empty');
   cfg.name=name;
-  cfg.paynow=$('prof-paynow').value.trim();
+  cfg.paynow=normalizePN($('prof-paynow').value);
   cfg.paynowType=$('prof-paynow-type').value;
+  // Update paynow display with normalized value
+  $('prof-paynow').value=cfg.paynow;
   saveCfg();
   for(const t of Object.values(trips)){
     if(t.members?.[uid]){
-      const m=normM(t.members[uid],uid);
-      m.name=name;
+      const m=normM(t.members[uid],uid);m.name=name;
       if(cfg.paynow){m.paynowProxy=cfg.paynow;m.paynowType=cfg.paynowType}
       else{delete m.paynowProxy;delete m.paynowType}
-      t.members[uid]=m;
-      pushTrip(t);
+      t.members[uid]=m;pushTrip(t,true);
     }
   }
   closeModal('modal-profile');renderHome();toast('Profile saved ✓');
 }
 
-// API CONFIG MODAL
+// API CONFIG
 function openApiModal(){
   $('api-url-input').value=cfg.api||'';
   $('api-ik-key').value=cfg.ikPublicKey||'';
@@ -644,17 +667,11 @@ function renderHome(){
   applyTheme(cfg.theme||'light');
   const arr=Object.values(trips).sort((a,b)=>(b.updated_at||'').localeCompare(a.updated_at||''));
   const el=$('trip-list');
-  if(!arr.length){
-    el.innerHTML=`<div class="empty"><div class="empty-icon">✈️</div><div class="empty-title">No trips yet</div><div class="empty-msg">Create a trip or join one with a code.</div></div>`;
-    return;
-  }
+  if(!arr.length){el.innerHTML=`<div class="empty"><div class="empty-icon">✈️</div><div class="empty-title">No trips yet</div><div class="empty-msg">Create a trip or join with a code — or open an invite link.</div></div>`;return;}
   el.innerHTML=arr.map(t=>{
     const ids=Object.keys(t.members||{});
     const total=(t.expenses||[]).reduce((s,e)=>s+(e.amount||0),0);
-    const stack=ids.slice(0,4).map(id=>{
-      const m=normM(t.members[id],id);
-      return`<span class="avatar" style="background:${avCol(id)}">${esc(initials(m.name))}</span>`;
-    }).join('');
+    const stack=ids.slice(0,4).map(id=>{const m=normM(t.members[id],id);return`<span class="avatar" style="background:${avCol(id)}">${esc(initials(m.name))}</span>`;}).join('');
     return`<div class="trip-card" onclick="openTrip('${esc(t.code)}')">
       <div class="trip-icon">✈️</div>
       <div style="flex:1;min-width:0">
@@ -673,32 +690,31 @@ async function promptNewTrip(){
     expenses:[],settlements:[],updated_at:new Date().toISOString()};
   await pushTrip(t);openTrip(t.code);
 }
+
 async function promptJoinTrip(){
-  const code=(prompt('Enter trip code:')||'').trim().toUpperCase();if(!code)return;
+  const code=(prompt('Enter trip code:')||'').trim().toUpperCase();
+  if(!code)return;
+  await joinByCode(code);
+}
+
+async function joinByCode(code){
   if(trips[code])return openTrip(code);
-  if(!cfg.api){
-    toast('Opening API config — paste the URL then try again',true);
-    return openApiModal();
-  }
+  if(!cfg.api){toast('Set up API URL in Settings first',true);return openApiModal();}
   try{
-    toast('Looking up…');
+    toast('Looking up trip…');
     const t=await pullTrip(code);
     if(!t.members[uid]){
-      // Check for a name match — maybe this user already exists under a different device ID
+      // Check for "This is me" — name match among existing members
       const myName=(cfg.name||'').toLowerCase().trim();
-      const match=myName?Object.entries(t.members).find(([id,m])=>{
-        return id!==uid&&(normM(m,id).name||'').toLowerCase().trim()===myName;
-      }):null;
+      const match=myName?Object.entries(t.members).find(([id,m])=>id!==uid&&(normM(m,id).name||'').toLowerCase().trim()===myName):null;
       if(match){
         const[existingId,existingM]=match;
-        const claim=confirm(`"${normM(existingM,existingId).name}" already exists in this trip.\n\nAre you this person on a different device?\n\nYes = link your identity (recommended)\nNo = join as a new member`);
+        const mName=normM(existingM,existingId).name;
+        const claim=confirm('"'+mName+'" is already in this trip.\n\nIs that you on a different device?\n\nOK = link to that identity\nCancel = join as new member');
         if(claim){
-          // Re-key: make our uid point to the existing member data, remove old key
-          t.members[uid]=t.members[existingId];
+          t.members[uid]={...t.members[existingId],...(cfg.paynow?{paynowProxy:cfg.paynow,paynowType:cfg.paynowType}:{})};
           delete t.members[existingId];
-          if(cfg.paynow){t.members[uid].paynowProxy=cfg.paynow;t.members[uid].paynowType=cfg.paynowType}
-          await pushTrip(t);
-          openTrip(code);return;
+          await pushTrip(t);openTrip(code);return;
         }
       }
       t.members[uid]={name:cfg.name||'Me',avatarColor:avCol(uid),...(cfg.paynow?{paynowProxy:cfg.paynow,paynowType:cfg.paynowType}:{})};
@@ -723,30 +739,28 @@ function renderTripMeta(){
 function renderExpenses(){
   const list=$('expense-list');
   const exps=(cur.expenses||[]).slice().reverse();
-  if(!exps.length){
-    list.innerHTML=`<div class="empty mt8"><div class="empty-icon">🧾</div><div class="empty-title">No expenses yet</div><div class="empty-msg">Tap "+ Add Expense" to get started.</div></div>`;
-    return;
-  }
+  if(!exps.length){list.innerHTML=`<div class="empty mt8"><div class="empty-icon">🧾</div><div class="empty-title">No expenses yet</div><div class="empty-msg">Tap "+ Add Expense" to get started.</div></div>`;return;}
   const n=Math.max(Object.keys(cur.members||{}).length,1);
   list.innerHTML=exps.map(e=>{
     const isFx=e.currency&&e.currency!=='SGD';
     const amtMain=isFx?fmtAmt(e.originalAmount||e.amount,e.currency):fmtSGD(e.amount);
     const amtSub=isFx?'≈ '+fmtSGD(e.amount):'';
-    const splitNote=e.splits?'<span class="pill pill-gray" style="margin-left:3px">custom split</span>':fmtSGD((e.amount||0)/n)+'/pax';
+    const splitNote=e.splits?`<span class="pill pill-gray" style="margin-left:3px">${e.splitMode||'custom'} split</span>`:fmtSGD((e.amount||0)/n)+'/pax';
+    const isCreator=!e.createdBy||e.createdBy===uid;
     return`<div class="exp-item">
       <div class="exp-icon">🧾</div>
       <div style="flex:1;min-width:0">
         <div class="exp-desc">${esc(e.desc)}</div>
-        <div class="exp-meta">Paid by ${esc(getMName(e.paidBy))} · ${fmtDate(e.at)} · ${e.splits?'':''}${splitNote}</div>
+        <div class="exp-meta">Paid by ${esc(getMName(e.paidBy))} · ${fmtDate(e.at)} · ${splitNote}</div>
         ${e.receiptUrl?`<a href="${esc(e.receiptUrl)}" target="_blank" class="small" style="color:var(--accent);margin-top:3px;display:inline-block">📷 Receipt</a>`:''}
       </div>
       <div style="flex-shrink:0;text-align:right">
         <div class="exp-amt-main">${esc(amtMain)}</div>
         ${amtSub?`<div class="exp-amt-sub">${esc(amtSub)}</div>`:''}
-        <div class="row mt8" style="gap:6px;justify-content:flex-end">
+        ${isCreator?`<div class="row mt8" style="gap:6px;justify-content:flex-end">
           <button class="btn btn-outline btn-sm" onclick="editExpense('${esc(e.id)}')">✏</button>
           <button class="btn btn-danger btn-sm" onclick="deleteExpense('${esc(e.id)}')">×</button>
-        </div>
+        </div>`:'<div class="small muted mt8" style="font-size:.7rem">added by others</div>'}
       </div>
     </div>`;
   }).join('');
@@ -755,53 +769,61 @@ function renderExpenses(){
 // ── SPLIT LOGIC ──
 function getSGDAmount(){
   const c=$('e-currency').value;
-  if(c==='SGD')return parseFloat($('e-orig-amt').value)||0;
-  return parseFloat($('e-sgd-amt').value)||0;
+  return c==='SGD'?parseFloat($('e-orig-amt').value)||0:parseFloat($('e-sgd-amt').value)||0;
 }
 
 function setSplitMode(mode){
   _splitMode=mode;
   $('split-eq-btn').className='split-tab'+(mode==='equal'?' active':'');
+  $('split-sel-btn').className='split-tab'+(mode==='selected'?' active':'');
   $('split-cu-btn').className='split-tab'+(mode==='custom'?' active':'');
-  $('split-custom-ui').classList.toggle('hide',mode==='equal');
+  $('split-sel-ui').classList.toggle('hide',mode!=='selected');
+  $('split-custom-ui').classList.toggle('hide',mode!=='custom');
+  if(mode==='selected')initSplitSelected();
   if(mode==='custom')initSplitAmts();
 }
 
-function initSplitAmts(){
+function initSplitSelected(){
   const ids=Object.keys(cur.members||{});
-  const total=getSGDAmount();
-  if(!ids.length)return;
+  if(!Object.keys(_splitSelected).length)ids.forEach(id=>_splitSelected[id]=true);
+  renderSplitSelected();
+}
+function toggleSplitSelected(id,checked){_splitSelected[id]=checked;}
+function renderSplitSelected(){
+  const ids=Object.keys(cur.members||{});
+  $('split-sel-rows').innerHTML=ids.map(id=>{
+    const nm=getMName(id),checked=_splitSelected[id]!==false;
+    return`<div class="split-row" style="margin-bottom:6px">
+      <input type="checkbox" id="sch_${esc(id)}" ${checked?'checked':''} onchange="toggleSplitSelected('${esc(id)}',this.checked)" style="width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;cursor:pointer">
+      <span class="avatar" style="background:${avCol(id)};width:28px;height:28px;font-size:.6rem;border:none">${esc(initials(nm))}</span>
+      <label for="sch_${esc(id)}" class="small bold grow" style="cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nm)}</label>
+    </div>`;
+  }).join('');
+}
+
+function initSplitAmts(){
+  const ids=Object.keys(cur.members||{});const total=getSGDAmount();if(!ids.length)return;
   const per=+(total/ids.length).toFixed(2);
-  _splitAmts={};
-  ids.forEach(id=>_splitAmts[id]=per);
-  // fix rounding: assign remainder to first person
+  _splitAmts={};ids.forEach(id=>_splitAmts[id]=per);
   const diff=+(total-ids.reduce((s,id)=>s+_splitAmts[id],0)).toFixed(2);
   if(Math.abs(diff)>0)_splitAmts[ids[0]]=+(_splitAmts[ids[0]]+diff).toFixed(2);
   renderSplitRows();
 }
-
 function renderSplitRows(){
-  const ids=Object.keys(cur.members||{});
-  const total=getSGDAmount();
+  const ids=Object.keys(cur.members||{});const total=getSGDAmount();
   $('split-rows').innerHTML=ids.map(id=>{
-    const nm=getMName(id);
-    const val=(_splitAmts[id]||0).toFixed(2);
+    const nm=getMName(id),val=(_splitAmts[id]||0).toFixed(2);
     return`<div class="split-row">
       <span class="avatar" style="background:${avCol(id)};width:28px;height:28px;font-size:.6rem;border:none">${esc(initials(nm))}</span>
       <span class="small bold grow" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(nm)}</span>
-      <input type="number" step="0.01" min="0" value="${val}" class="field split-row-input"
-        style="width:88px;padding:7px 8px;font-size:.85rem;text-align:right"
+      <input type="number" step="0.01" min="0" value="${val}" class="field"
+        style="width:88px;padding:7px 8px;font-size:.85rem;text-align:right;flex-shrink:0"
         oninput="onSplitInput('${esc(id)}',this.value)">
     </div>`;
   }).join('');
   updateSplitLabel(total);
 }
-
-function onSplitInput(id,val){
-  _splitAmts[id]=parseFloat(val)||0;
-  updateSplitLabel(getSGDAmount());
-}
-
+function onSplitInput(id,val){_splitAmts[id]=parseFloat(val)||0;updateSplitLabel(getSGDAmount());}
 function updateSplitLabel(total){
   const sum=+Object.values(_splitAmts).reduce((s,v)=>s+v,0).toFixed(2);
   const el=$('split-total-label');if(!el)return;
@@ -811,24 +833,18 @@ function updateSplitLabel(total){
 }
 
 function openExpenseModal(editId=null){
-  _editExpenseId=editId;
-  _splitMode='equal';_splitAmts={};
+  _editExpenseId=editId;_splitMode='equal';_splitAmts={};_splitSelected={};
   $('expense-modal-title').textContent=editId?'Edit Expense':'Add Expense';
   $('add-expense-btn').textContent=editId?'Save Changes':'Add Expense';
   $('e-paid-by').innerHTML=Object.entries(cur.members||{}).map(([id,m])=>{
     const nm=normM(m,id).name;
     return`<option value="${esc(id)}"${id===uid?' selected':''}>${esc(nm)}</option>`;
   }).join('');
-
-  // reset split UI
-  $('split-eq-btn').className='split-tab active';
-  $('split-cu-btn').className='split-tab';
-  $('split-custom-ui').classList.add('hide');
-  $('split-rows').innerHTML='';
-
+  // Reset split UI
+  setSplitMode('equal');
+  $('split-rows').innerHTML='';$('split-sel-rows').innerHTML='';
   if(editId){
-    const e=cur.expenses.find(x=>x.id===editId);
-    if(!e)return;
+    const e=cur.expenses.find(x=>x.id===editId);if(!e)return;
     $('e-desc').value=e.desc;
     $('e-orig-amt').value=e.originalAmount||e.amount;
     $('e-currency').value=e.currency||'SGD';
@@ -836,13 +852,10 @@ function openExpenseModal(editId=null){
     $('e-fx-rate').value=e.fxRate&&e.fxRate!==1?e.fxRate:'';
     $('e-sgd-amt').value=e.currency&&e.currency!=='SGD'?e.amount.toFixed(2):'';
     $('fx-row').classList.toggle('hide',!e.currency||e.currency==='SGD');
-    // restore splits
     if(e.splits&&Object.keys(e.splits).length){
-      _splitMode='custom';_splitAmts={...e.splits};
-      $('split-eq-btn').className='split-tab';
-      $('split-cu-btn').className='split-tab active';
-      $('split-custom-ui').classList.remove('hide');
-      renderSplitRows();
+      const mode=e.splitMode||'custom';
+      if(mode==='selected'){_splitSelected=Object.fromEntries(Object.keys(e.splits).map(id=>[id,true]));setSplitMode('selected');}
+      else{_splitAmts={...e.splits};setSplitMode('custom');renderSplitRows();}
     }
   }else{
     $('e-desc').value='';$('e-orig-amt').value='';$('e-currency').value=cur.currency||'SGD';
@@ -852,14 +865,9 @@ function openExpenseModal(editId=null){
   _receiptUrl=null;openModal('modal-expense');
   if(!editId)onCurrencyChange();
 }
-
 function editExpense(id){openExpenseModal(id)}
 
-function onAmountInput(){
-  updateFxConvert();
-  if(_splitMode==='custom')initSplitAmts();
-}
-
+function onAmountInput(){updateFxConvert();if(_splitMode==='custom')initSplitAmts();}
 async function onCurrencyChange(){
   const c=$('e-currency').value;
   if(c==='SGD'){$('fx-row').classList.add('hide');if(_splitMode==='custom')initSplitAmts();return;}
@@ -874,36 +882,25 @@ async function fetchFxRate(from){
     $('fx-status').textContent=`1 ${from} = ${cached.rate.toFixed(4)} SGD (cached)`;
     updateFxConvert();return cached.rate;
   }
-  // Try frankfurter (limited currencies) then open.er-api (broader, incl. VND)
   const attempts=[
-    async()=>{
-      const r=await fetch(`https://api.frankfurter.app/latest?from=${from}&to=SGD`);
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      const d=await r.json();
-      if(!d.rates?.SGD)throw new Error('unsupported');
-      return{rate:d.rates.SGD,date:d.date};
-    },
-    async()=>{
-      const r=await fetch(`https://open.er-api.com/v6/latest/${from}`);
-      if(!r.ok)throw new Error('HTTP '+r.status);
-      const d=await r.json();
-      if(!d.rates?.SGD)throw new Error('no SGD rate');
-      const date=(d.time_last_update_utc||'').slice(0,16)||'recent';
-      return{rate:d.rates.SGD,date};
-    }
+    async()=>{const r=await fetch(`https://api.frankfurter.app/latest?from=${from}&to=SGD`);if(!r.ok)throw 0;const d=await r.json();if(!d.rates?.SGD)throw 0;return{rate:d.rates.SGD,date:d.date};},
+    async()=>{const r=await fetch(`https://open.er-api.com/v6/latest/${from}`);if(!r.ok)throw 0;const d=await r.json();if(!d.rates?.SGD)throw 0;return{rate:d.rates.SGD,date:'recent'};}
   ];
   for(const attempt of attempts){
-    try{
-      const{rate,date}=await attempt();
-      fxCache[key]={rate,ts:Date.now()};saveFx();
-      $('e-fx-rate').value=rate.toFixed(4);
-      $('fx-status').textContent=`1 ${from} = ${rate.toFixed(4)} SGD (live · ${date})`;
-      updateFxConvert();return rate;
-    }catch{}
+    try{const{rate,date}=await attempt();fxCache[key]={rate,ts:Date.now()};saveFx();
+      $('e-fx-rate').value=rate.toFixed(4);$('fx-status').textContent=`1 ${from} = ${rate.toFixed(4)} SGD (live · ${date})`;
+      updateFxConvert();return rate;}catch{}
+  }
+  // Use fallback estimate
+  const fallback=FX_FALLBACK[from];
+  if(fallback){
+    $('e-fx-rate').value=fallback.toFixed(4);
+    $('fx-status').textContent=`1 ${from} ≈ ${fallback.toFixed(4)} SGD (estimate · edit if needed)`;
+    updateFxConvert();return fallback;
   }
   $('fx-status').textContent='Rate unavailable — enter manually';
 }
-async function refreshFxRate(){const c=$('e-currency').value;if(c==='SGD')return;delete fxCache[c+'_SGD'];saveFx();await fetchFxRate(c)}
+async function refreshFxRate(){const c=$('e-currency').value;if(c==='SGD')return;delete fxCache[c+'_SGD'];saveFx();await fetchFxRate(c);}
 function updateFxConvert(){
   const a=parseFloat($('e-orig-amt').value)||0,r=parseFloat($('e-fx-rate').value)||0;
   $('e-sgd-amt').value=(a&&r)?(a*r).toFixed(2):'';
@@ -916,26 +913,15 @@ async function onReceiptSelected(input){
   reader.onload=e=>{$('receipt-preview').src=e.target.result;$('receipt-preview').style.display='block'};
   reader.readAsDataURL(file);
   if(cfg.ikPublicKey&&cfg.ikEndpoint){
-    $('upload-status').textContent='⏳ Uploading to ImageKit…';
+    $('upload-status').textContent='⏳ Uploading…';
     try{
-      const fd=new FormData();
-      fd.append('file',file);
-      fd.append('fileName','receipt_'+Date.now()+'.jpg');
-      fd.append('publicKey',cfg.ikPublicKey);
-      fd.append('useUniqueFileName','true');
+      const fd=new FormData();fd.append('file',file);fd.append('fileName','receipt_'+Date.now()+'.jpg');fd.append('publicKey',cfg.ikPublicKey);fd.append('useUniqueFileName','true');
       const res=await fetch('https://upload.imagekit.io/api/v1/files/upload',{method:'POST',body:fd});
       const j=await res.json();
-      if(j.url){_receiptUrl=j.url;$('upload-status').textContent='✅ Uploaded to ImageKit'}
-      else throw new Error(j.message||'Upload failed — check ImageKit dashboard: Settings → Security → disable "Restrict unsigned image uploads"');
-    }catch(e){
-      $('upload-status').textContent='⚠️ ImageKit upload failed — receipt saved locally only. '+e.message;
-      _receiptUrl=$('receipt-preview').src;
-    }
-  }else{
-    // store as data URL (local only, not synced)
-    _receiptUrl=$('receipt-preview').src;
-    $('upload-status').textContent='📎 Stored locally (configure ImageKit to sync receipts)';
-  }
+      if(j.url){_receiptUrl=j.url;$('upload-status').textContent='✅ Uploaded'}
+      else throw new Error(j.message||'Upload failed — enable unsigned uploads in ImageKit → Security');
+    }catch(e){$('upload-status').textContent='⚠️ Upload failed: '+e.message;_receiptUrl=$('receipt-preview').src;}
+  }else{_receiptUrl=$('receipt-preview').src;$('upload-status').textContent='📎 Stored locally';}
 }
 
 async function submitExpense(){
@@ -944,39 +930,44 @@ async function submitExpense(){
   if(!desc)return toast('Enter a description');
   if(!origAmt||origAmt<=0)return toast('Enter a valid amount');
   let amount=origAmt,fxRate=1,originalAmount=origAmt;
-  if(currency!=='SGD'){
-    fxRate=parseFloat($('e-fx-rate').value)||0;
-    if(!fxRate)return toast('Enter the FX rate');
-    amount=origAmt*fxRate;originalAmount=origAmt;
-  }
-  // Validate custom splits
-  let splits=null;
-  if(_splitMode==='custom'){
+  if(currency!=='SGD'){fxRate=parseFloat($('e-fx-rate').value)||0;if(!fxRate)return toast('Enter the FX rate');amount=origAmt*fxRate;originalAmount=origAmt;}
+  // Build splits
+  let splits=null,splitMode=null;
+  if(_splitMode==='selected'){
+    const sel=Object.keys(cur.members||{}).filter(id=>_splitSelected[id]!==false);
+    if(!sel.length)return toast('Select at least one person',true);
+    const share=+(amount/sel.length).toFixed(2);
+    splits={};sel.forEach(id=>splits[id]=share);
+    // Fix rounding
+    const diff=+(amount-Object.values(splits).reduce((s,v)=>s+v,0)).toFixed(2);
+    if(Math.abs(diff)>0)splits[sel[0]]=+(splits[sel[0]]+diff).toFixed(2);
+    splitMode='selected';
+  }else if(_splitMode==='custom'){
     const sum=+Object.values(_splitAmts).reduce((s,v)=>s+v,0).toFixed(2);
     if(Math.abs(sum-amount)>0.05)return toast('Split total ('+fmtSGD(sum)+') must equal '+fmtSGD(amount),true);
     splits=Object.fromEntries(Object.entries(_splitAmts).map(([k,v])=>[k,+v.toFixed(2)]));
+    splitMode='custom';
   }
   const btn=$('add-expense-btn');btn.textContent='Saving…';btn.disabled=true;
   try{
+    // Stale-write protection: pull latest before writing
+    if(cfg.api&&!_editExpenseId){try{const fresh=await pullTrip(curCode);cur=fresh;}catch{}}
     if(_editExpenseId){
       const idx=cur.expenses.findIndex(e=>e.id===_editExpenseId);
-      if(idx>-1){
-        const existing=cur.expenses[idx];
-        cur.expenses[idx]={...existing,desc,amount,currency,originalAmount,fxRate,paidBy,splits,
-          receiptUrl:_receiptUrl||existing.receiptUrl||null};
-      }
+      if(idx>-1){const existing=cur.expenses[idx];cur.expenses[idx]={...existing,desc,amount,currency,originalAmount,fxRate,paidBy,splits,splitMode,receiptUrl:_receiptUrl||existing.receiptUrl||null};}
       toast('Expense updated ✓');
     }else{
-      cur.expenses.push({id:uuid(),desc,amount,currency,originalAmount,fxRate,paidBy,splits,
-        at:new Date().toISOString(),receiptUrl:_receiptUrl||null});
+      cur.expenses.push({id:uuid(),desc,amount,currency,originalAmount,fxRate,paidBy,splits,splitMode,createdBy:uid,at:new Date().toISOString(),receiptUrl:_receiptUrl||null});
       toast('Expense added ✓');
     }
     await pushTrip(cur);closeModal('modal-expense');renderExpenses();renderTripMeta();
-  }finally{btn.textContent=_editExpenseId?'Save Changes':'Add Expense';btn.disabled=false}
+  }finally{btn.textContent=_editExpenseId?'Save Changes':'Add Expense';btn.disabled=false;}
 }
 
 async function deleteExpense(id){
   if(!confirm('Delete this expense?'))return;
+  // Stale-write protection
+  if(cfg.api){try{const fresh=await pullTrip(curCode);cur=fresh;}catch{}}
   cur.expenses=cur.expenses.filter(e=>e.id!==id);
   await pushTrip(cur);renderExpenses();renderTripMeta();toast('Deleted');
 }
@@ -988,16 +979,9 @@ function calcBalances(){
   const ids=Object.keys(cur.members||{});
   const b=Object.fromEntries(ids.map(id=>[id,0]));
   (cur.expenses||[]).forEach(e=>{
-    // debit each person their share
     if(e.splits&&Object.keys(e.splits).length){
-      for(const [id,share] of Object.entries(e.splits)){
-        if(b[id]!==undefined)b[id]-=share;
-      }
-    }else{
-      const share=e.amount/Math.max(ids.length,1);
-      ids.forEach(id=>b[id]-=share);
-    }
-    // credit the payer for the full amount
+      for(const [id,share] of Object.entries(e.splits)){if(b[id]!==undefined)b[id]-=share;}
+    }else{const share=e.amount/Math.max(ids.length,1);ids.forEach(id=>b[id]-=share);}
     if(b[e.paidBy]!==undefined)b[e.paidBy]+=e.amount;
   });
   (cur.settlements||[]).filter(s=>s.status==='paid').forEach(s=>{
@@ -1011,10 +995,7 @@ function calcSettlements(bal){
   for(const [id,v] of Object.entries(bal)){if(v<-0.005)d.push({id,a:-v});else if(v>0.005)c.push({id,a:v})}
   d.sort((a,b)=>b.a-a.a);c.sort((a,b)=>b.a-a.a);
   const out=[];let i=0,j=0;
-  while(i<d.length&&j<c.length){
-    const amt=Math.min(d[i].a,c[j].a);out.push({from:d[i].id,to:c[j].id,amount:amt});
-    d[i].a-=amt;c[j].a-=amt;if(d[i].a<0.005)i++;if(c[j].a<0.005)j++;
-  }
+  while(i<d.length&&j<c.length){const amt=Math.min(d[i].a,c[j].a);out.push({from:d[i].id,to:c[j].id,amount:amt});d[i].a-=amt;c[j].a-=amt;if(d[i].a<0.005)i++;if(c[j].a<0.005)j++;}
   return out;
 }
 function renderBalancesTab(){
@@ -1025,12 +1006,11 @@ function renderBalancesTab(){
       const nm=getMName(id),cls=v>=0?'good':'bad',sg=v>=0?'+':'-';
       return`<div class="bal-item"><span class="avatar" style="background:${avCol(id)}">${esc(initials(nm))}</span><div style="flex:1"><b>${esc(nm)}</b></div><b class="${cls}">${sg}${fmtSGD(Math.abs(v))}</b></div>`;
     }).join('');
-  if(!sets.length){$('settle-list').innerHTML=`<div class="card" style="background:var(--accent-light);border-color:var(--accent);text-align:center;margin-top:10px"><b class="good">🎉 All square!</b></div>`;return}
+  if(!sets.length){$('settle-list').innerHTML=`<div class="card" style="background:var(--accent-light);border-color:var(--accent);text-align:center;margin-top:10px"><b class="good">🎉 All square!</b></div>`;return;}
   $('settle-list').innerHTML=`<div class="sec-hd mt12">Who Pays Whom</div>`+
     sets.map(s=>{
       const fn=getMName(s.from),tn=getMName(s.to);
-      const toM=cur.members[s.to];
-      const hasPN=(typeof toM==='object')&&toM?.paynowProxy;
+      const toM=cur.members[s.to];const hasPN=(typeof toM==='object')&&toM?.paynowProxy;
       const sj_=esc(JSON.stringify(s));
       return`<div class="settle-card">
         <div class="row"><span class="avatar" style="background:${avCol(s.from)}">${esc(initials(fn))}</span>
@@ -1050,8 +1030,7 @@ function renderBalancesTab(){
 function openSettleModal(s,declarationOnly=false){
   _settleData=s;
   const fn=getMName(s.from),tn=getMName(s.to);
-  const toM=cur.members[s.to];
-  const hasPN=!declarationOnly&&(typeof toM==='object')&&toM?.paynowProxy;
+  const toM=cur.members[s.to];const hasPN=!declarationOnly&&(typeof toM==='object')&&toM?.paynowProxy;
   let html=`<div class="row" style="justify-content:center;gap:20px;margin-bottom:4px">
     <div class="center"><span class="avatar av-lg" style="background:${avCol(s.from)}">${esc(initials(fn))}</span><div class="small muted mt4">${esc(fn)}</div></div>
     <div style="font-size:1.6rem;color:var(--accent);margin-top:6px">→</div>
@@ -1065,22 +1044,11 @@ function openSettleModal(s,declarationOnly=false){
     </div>`;
     $('settle-modal-body').innerHTML=html;
     setTimeout(()=>{
-      try{
-        const isDark=cfg.theme==='dark';
-        new QRCode($('qr-container'),{
-          text:buildPayNowQR(toM.paynowProxy,toM.paynowType||'2',s.amount,tn),
-          width:220,height:220,
-          colorDark:isDark?'#e4f2eb':'#085041',
-          colorLight:isDark?'#112019':'#ffffff',
-          correctLevel:QRCode.CorrectLevel.M
-        });
-      }catch(e){
-        $('qr-container').innerHTML=`<div class="small bad">QR error: ${esc(e.message)}</div>`;
-      }
+      try{const isDark=cfg.theme==='dark';new QRCode($('qr-container'),{text:buildPayNowQR(toM.paynowProxy,toM.paynowType||'2',s.amount,tn),width:220,height:220,colorDark:isDark?'#e4f2eb':'#085041',colorLight:isDark?'#112019':'#ffffff',correctLevel:QRCode.CorrectLevel.M});}
+      catch(e){$('qr-container').innerHTML=`<div class="small bad">QR error: ${esc(e.message)}</div>`;}
     },60);
   }else{
-    html+=`<div class="card mt12" style="background:var(--accent-light);border:0;text-align:center">
-      <div class="muted small">Click "Mark as Paid" once ${esc(fn)} has settled with ${esc(tn)}.</div></div>`;
+    html+=`<div class="card mt12" style="background:var(--accent-light);border:0;text-align:center"><div class="muted small">Click "Mark as Paid" once ${esc(fn)} has settled with ${esc(tn)}.</div></div>`;
     $('settle-modal-body').innerHTML=html;
   }
   openModal('modal-settle');
@@ -1106,7 +1074,7 @@ function buildPayNowQR(proxy,type,amount,name){
 function renderMembers(){
   const list=$('member-list');
   const entries=Object.entries(cur.members||{});
-  if(!entries.length){list.innerHTML=`<div class="empty"><div class="empty-title">No members</div></div>`;return}
+  if(!entries.length){list.innerHTML=`<div class="empty"><div class="empty-title">No members</div></div>`;return;}
   list.innerHTML=entries.map(([id,m])=>{
     const mem=normM(m,id),isMe=id===uid;
     return`<div class="mem-item">
@@ -1131,7 +1099,7 @@ function editMember(id){
 }
 async function submitMember(){
   const name=$('m-name').value.trim();if(!name)return toast('Enter a name');
-  const paynow=$('m-paynow').value.trim(),type=$('m-paynow-type').value;
+  const paynow=normalizePN($('m-paynow').value),type=$('m-paynow-type').value;
   const id=_editMemberId||('m_'+uuid());
   const data={name,avatarColor:avCol(id)};
   if(paynow){data.paynowProxy=paynow;data.paynowType=type}
@@ -1161,29 +1129,23 @@ function renderDashboard(){
   const tc=isDark?'#7aaa90':'#4a6457',gc=isDark?'#263d30':'#d5e4dc',sc=isDark?'#112019':'#ffffff';
   const byP=Object.fromEntries(ids.map(id=>[id,0]));
   exps.forEach(e=>{if(byP[e.paidBy]!==undefined)byP[e.paidBy]+=e.amount});
-  _charts.donut=new Chart($('chart-donut').getContext('2d'),{
-    type:'doughnut',
+  _charts.donut=new Chart($('chart-donut').getContext('2d'),{type:'doughnut',
     data:{labels:ids.map(getMName),datasets:[{data:ids.map(id=>+(byP[id]||0).toFixed(2)),backgroundColor:ids.map(avCol),borderColor:sc,borderWidth:3}]},
-    options:{responsive:true,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{size:11},color:tc,padding:12}}}}
-  });
+    options:{responsive:true,cutout:'62%',plugins:{legend:{position:'bottom',labels:{font:{size:11},color:tc,padding:12}}}}});
   const bv=ids.map(id=>+(bal[id]||0).toFixed(2));
-  _charts.bar=new Chart($('chart-bar').getContext('2d'),{
-    type:'bar',
+  _charts.bar=new Chart($('chart-bar').getContext('2d'),{type:'bar',
     data:{labels:ids.map(getMName),datasets:[{data:bv,backgroundColor:bv.map(v=>v>=0?'#1D9E7540':'#C9303040'),borderColor:bv.map(v=>v>=0?'#1D9E75':'#C93030'),borderWidth:2,borderRadius:6}]},
-    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}
-  });
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}});
   const byD={};exps.forEach(e=>{const d=(e.at||'').slice(0,10)||'?';byD[d]=(byD[d]||0)+e.amount});
   const dates=Object.keys(byD).sort();
-  _charts.line=new Chart($('chart-line').getContext('2d'),{
-    type:'line',
+  _charts.line=new Chart($('chart-line').getContext('2d'),{type:'line',
     data:{labels:dates.map(d=>new Date(d).toLocaleDateString('en-SG',{day:'numeric',month:'short'})),
       datasets:[{data:dates.map(d=>+(byD[d]).toFixed(2)),borderColor:'#1D9E75',backgroundColor:'#1D9E7522',fill:true,tension:0.4,pointBackgroundColor:'#1D9E75',pointRadius:4}]},
-    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}
-  });
+    options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}});
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// SETTINGS TAB
+// SETTINGS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function renderSettings(){
   $('set-trip-name').textContent=cur.name;$('set-trip-code').textContent=cur.code;
@@ -1192,31 +1154,34 @@ function renderSettings(){
   $('toggle-dark').checked=cfg.theme==='dark';
   $('font-slider').value=cfg.fontSize||15;$('font-size-label').textContent=(cfg.fontSize||15)+'px';
 }
-function renameTripPrompt(){
-  const n=prompt('New name:',cur.name);if(!n?.trim())return;
-  cur.name=n.trim();pushTrip(cur);renderTripMeta();renderSettings();toast('Renamed ✓');
-}
-function copyTripCode(){navigator.clipboard.writeText(cur.code).then(()=>toast('Copied: '+cur.code)).catch(()=>toast(cur.code))}
-function setTripCurrency(c){cur.currency=c;pushTrip(cur);toast('Currency: '+c)}
+function renameTripPrompt(){const n=prompt('New name:',cur.name);if(!n?.trim())return;cur.name=n.trim();pushTrip(cur);renderTripMeta();renderSettings();toast('Renamed ✓');}
+function copyTripCode(){navigator.clipboard.writeText(cur.code).then(()=>toast('Copied: '+cur.code)).catch(()=>toast(cur.code));}
+function setTripCurrency(c){cur.currency=c;pushTrip(cur);toast('Currency: '+c);}
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // MODALS
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-function openModal(id){$(id).classList.add('open');document.body.style.overflow='hidden'}
-function closeModal(id){$(id).classList.remove('open');document.body.style.overflow=''}
-document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))closeModal(e.target.id)});
+function openModal(id){$(id).classList.add('open');document.body.style.overflow='hidden';}
+function closeModal(id){$(id).classList.remove('open');document.body.style.overflow='';}
+document.addEventListener('click',e=>{if(e.target.classList.contains('modal-overlay'))closeModal(e.target.id);});
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // INIT
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 function init(){
   applyTheme(cfg.theme||'light');applyFontSize(cfg.fontSize||15);
+  // Migrate old string-format members
   let m=false;
   for(const t of Object.values(trips)){
-    for(const [id,v] of Object.entries(t.members||{})){if(typeof v==='string'){t.members[id]=normM(v,id);m=true}}
-    if(!t.settlements){t.settlements=[];m=true}
+    for(const [id,v] of Object.entries(t.members||{})){if(typeof v==='string'){t.members[id]=normM(v,id);m=true;}}
+    if(!t.settlements){t.settlements=[];m=true;}
   }
   if(m)saveTrips();
+  // Check for ?join=CODE invite link
+  try{
+    const joinCode=new URL(location.href).searchParams.get('join');
+    if(joinCode)sessionStorage.setItem('_pendingJoin',joinCode.toUpperCase());
+  }catch{}
   if(!cfg.name)showScreen('screen-welcome');else goHome();
 }
 init();
