@@ -370,6 +370,11 @@ Findings:
 - C15-F2: Installed PWAs can preserve old app shell code if the service worker uses cache-first navigation; SplitLah should prefer fresh network loads and only fall back to cache when offline.
 - C15-F3: Local structural verification confirmed manifest `SplitLah`, `standalone` display, `/splitlah/` scope/start URL, service worker file, and generated green PNG icons exist.
 - C15-F4: Local static server verification could not run because approval for starting the server timed out twice.
+- C15-F5: GitHub Pages built commit `6fc7920` successfully after source was confirmed as `codex/redesign-mvp`.
+- C15-F6: Live smoke confirmed the public page exposes `manifest.webmanifest`, Apple touch icon, theme color `#075943`, service worker registration, install prompt hook, and `APP_VERSION=15`.
+- C15-F7: Live manifest is served as `application/manifest+json`, has standalone display, `/splitlah/` scope/start URL, and two icons.
+- C15-F8: Live service worker contains cache `splitlah-shell-v15`, immediate activation, old-cache cleanup, and network-first navigation via `cache: 'no-store'`.
+- C15-F9: Live console warning/error check was clean after opening the PWA-capable page.
 
 Fixes:
 - C15-X1: Added `manifest.webmanifest` with standalone display, `/splitlah/` scope, theme colors, and icons.
@@ -380,4 +385,4 @@ Fixes:
 - C15-X6: Bumped `APP_VERSION` to 15 for the PWA-capable app shell.
 
 Status:
-- Code changes structurally verified locally. Ready for commit, push, and live PWA smoke verification.
+- Completed. PWA install shell committed, pushed, and live-smoke verified.
