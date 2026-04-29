@@ -216,3 +216,27 @@ Fixes:
 
 Status:
 - Completed. Identity fix committed, pushed, and live-smoke verified.
+
+## Cycle 10
+Focus:
+- Review beta readiness from the perspective of a brand-new user.
+- Exercise onboarding, name setup, trip creation, member add, expense entry, and settlement.
+- Identify gaps before sharing the public URL with friends.
+
+Findings:
+- C10-F1: A clean local origin did not show onboarding; it defaulted to `Chee Wee` and a seeded `Tokyo Trip`.
+- C10-F2: New users can find `Profile & cloud` and change their name, but the app does not prompt them to do so on first visit.
+- C10-F3: Creating a trip worked, but the app opened the Dashboard first instead of guiding the user toward adding members or the first expense.
+- C10-F4: Adding a member with PayNow worked and normalized the test mobile proxy.
+- C10-F5: Recording an equal-split SGD expense worked and recalculated totals/balances.
+- C10-F6: Mistake recovery is weak: saved expenses expose `Delete` only; there is no expense edit flow.
+- C10-F7: Non-equal splits are not supported; expense entry always splits across all members equally.
+- C10-F8: Settlement worked in declaration mode when the payee had no PayNow proxy.
+- C10-F9: There is no trip owner/admin close/archive flow.
+- C10-F10: Console warning/error check was clean after the new-user flow.
+
+Fixes:
+- No code fixes made in Cycle 10. Findings require product/UI changes before beta.
+
+Status:
+- Completed. Recommended to pause for app-code changes before wider beta.
