@@ -359,3 +359,25 @@ Fixes:
 
 Status:
 - Completed. Local migration and UI copy changes committed, pushed, and live-smoke verified.
+
+## Cycle 15
+Focus:
+- Add installable PWA distribution so SplitLah can feel like a home-screen native app.
+- Keep OTA updates working for installed users.
+
+Findings:
+- C15-F1: Codex build did not yet include a manifest, service worker, install prompt hook, or home-screen icons.
+- C15-F2: Installed PWAs can preserve old app shell code if the service worker uses cache-first navigation; SplitLah should prefer fresh network loads and only fall back to cache when offline.
+- C15-F3: Local structural verification confirmed manifest `SplitLah`, `standalone` display, `/splitlah/` scope/start URL, service worker file, and generated green PNG icons exist.
+- C15-F4: Local static server verification could not run because approval for starting the server timed out twice.
+
+Fixes:
+- C15-X1: Added `manifest.webmanifest` with standalone display, `/splitlah/` scope, theme colors, and icons.
+- C15-X2: Added green home-screen icons at 192, 512, and Apple touch sizes.
+- C15-X3: Added `sw.js` with shell caching, immediate activation, old-cache cleanup, and network-first navigation for OTA-friendly updates.
+- C15-X4: Added service worker registration and update check on page load.
+- C15-X5: Added install prompt capture and a home-screen install card when the browser exposes `beforeinstallprompt`.
+- C15-X6: Bumped `APP_VERSION` to 15 for the PWA-capable app shell.
+
+Status:
+- Code changes structurally verified locally. Ready for commit, push, and live PWA smoke verification.
