@@ -205,6 +205,8 @@ Findings:
 - C9-F4: Local static verification changed profile name from `Chee Wee` to `Pixel 8`; trip card avatar changed to `P8` and Members tab showed `Pixel 8` with `You · This device`.
 - C9-F5: Local static verification of joining trip `5B2OYE` showed a `Join Cycle 3 Codex` choice sheet with `This is me` actions for existing members and a `Join as new person` fallback.
 - C9-F6: Local console warning/error check was clean after profile rename and join-choice verification.
+- C9-F7: GitHub Pages built commit `4468cba`; live smoke check showed `Profile & cloud` on the public Codex build.
+- C9-F8: Live console warning/error check was clean after loading the identity fix.
 
 Fixes:
 - C9-X1: Renamed `Cloud settings` to `Profile & cloud`.
@@ -213,4 +215,4 @@ Fixes:
 - C9-X4: Members list labels the current local identity as `You · This device`.
 
 Status:
-- Local verification passed. Awaiting commit, push, and live GitHub Pages verification.
+- Completed. Identity fix committed, pushed, and live-smoke verified.
