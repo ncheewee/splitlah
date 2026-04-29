@@ -490,3 +490,28 @@ Fixes:
 
 Status:
 - Completed. Cycle 18 fixes committed, pushed, live-smoke verified, and 3-user UAT passed.
+
+## Cycle 19
+Focus:
+- Address beta feedback on navigation, trip ownership clarity, feedback spacing/form friction, crowded trip actions, and dashboard scaling.
+
+Findings:
+- C19-F1: PWA/system back had no app history states, so gesture back could leave the app instead of returning to the previous SplitLah screen.
+- C19-F2: Back/Share controls above the tab content crowded the trip header and tabs.
+- C19-F3: Trip ownership existed as a small badge but was not clear enough for non-owners to know who started/manages the trip.
+- C19-F4: Feedback rating was unnecessary friction because most tester feedback is bug/confusion/suggestion text.
+- C19-F5: The feedback button on Home needed more breathing room before the trip cards.
+- C19-F6: Dashboard member lists need to scale more gracefully than a tight two-column card layout.
+- C19-F7: Local file-based in-app browser smoke confirmed v19 marker, simpler feedback sheet, visible `Started by`, lower Back/Share actions, dashboard/list layout, and browser back navigation from Expenses to Dashboard to Home with clean console warnings/errors.
+
+Fixes:
+- C19-X1: Added lightweight history states for Home, Trip tabs, Settle, and Paid screens so browser/PWA back maps to in-app navigation.
+- C19-X2: Moved Back/Share below the active tab content and made Share the primary action.
+- C19-X3: Added `Started by ...` on trip cards and in the trip header, with `You manage this trip` for owners.
+- C19-X4: Simplified feedback to a textarea-only sheet and kept a default neutral rating only for existing backend compatibility.
+- C19-X5: Added spacing below the Home feedback button.
+- C19-X6: Changed Dashboard to stacked cards with scrollable member lists for better 3+ member behavior.
+- C19-X7: Bumped app and service-worker cache version to v19.
+
+Status:
+- Local fix verification passed. Live UAT pending push.
