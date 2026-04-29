@@ -475,6 +475,11 @@ Findings:
 - C18-F3: Saved QR images need an actual white quiet-zone border in the exported PNG, not only CSS padding around the on-screen QR.
 - C18-F4: Dashboard looked compressed after removing daily spending because `Settle up` was still tucked inside the net-balance card.
 - C18-F5: Local file-based in-app browser smoke confirmed v18 marker, receipt choice UI, dashboard settle panel, form values surviving past the refresh interval, successful expense add, and clean console warnings/errors.
+- C18-F6: Live GitHub Pages served v18 after rebuild; public form-guard smoke confirmed values survived past the refresh interval and console warnings/errors stayed clean.
+- C18-F7: Three-user Worker UAT trip `C18LVA` persisted 3 members and 3 expenses totaling S$264.
+- C18-F8: Live app joined `C18LVA` as `C18 Host`, showed 3 members / 3 expenses, and displayed expected balances: Host -S$22, Pixel -S$68, iPad +S$90.
+- C18-F9: Live dashboard showed the new full-width Settle Up card with 2 suggested payments.
+- C18-F10: Admin screens loaded at `?admin=summary` and `?admin=feedback`; summary included the Cycle 18 UAT trip and feedback loaded existing entries.
 
 Fixes:
 - C18-X1: Background refresh now skips while the Expenses form has focus, typed values, or an attached receipt.
@@ -484,4 +489,4 @@ Fixes:
 - C18-X5: Bumped app and service-worker cache version to v18.
 
 Status:
-- Local fix verification passed. Live 3-user UAT pending push.
+- Completed. Cycle 18 fixes committed, pushed, live-smoke verified, and 3-user UAT passed.
