@@ -386,3 +386,43 @@ Fixes:
 
 Status:
 - Completed. PWA install shell committed, pushed, and live-smoke verified.
+
+## Cycle 16
+Focus:
+- Investigate failed first real multi-party beta impression where user B joined and added expenses but host did not see updates.
+- Tighten multi-device sync, expense creator controls, and receipt behavior.
+- Run a two-session UAT before recommending further beta testing.
+
+Findings:
+- C16-F1: Root sync issue found: opening a trip used localStorage only; a host device did not automatically pull the latest Worker trip after another device joined or added expenses.
+- C16-F2: Write risk found: adding an expense from a stale local trip could overwrite newer Worker data because `PUT /trips/:CODE` replaces the whole JSON trip.
+- C16-F3: Expense controls were too broad; every user could see edit/delete actions for every expense.
+- C16-F4: Expense payer selector did not explicitly default to the current app user.
+- C16-F5: Receipt capture was preview-only; `previewReceipt()` used a temporary object URL and `addExpense()` saved `receiptUrl:null`, so photos were not sent to the backend.
+- C16-F6: Android camera access may need an explicit capture input; a generic image file input can show gallery only depending on browser/PWA behavior.
+- C16-F7: Local two-session UAT created trip `0FODTN` (`Lunch @ Vivo UAT`) as host, joined from a second origin as user `L`, and added `L coffee`, `L toast`, and `L juice`.
+- C16-F8: Host session refreshed to show member `L` and all three `L` expenses with total S$12 and 2 members.
+- C16-F9: Worker verification for `0FODTN` returned members `Fresh Tester`, `L`; all three expenses were paid by `L`, created by `L`, and persisted in Neon/Worker JSON.
+
+Fixes:
+- C16-X1: `openTrip()` now renders local data quickly, then pulls the latest Worker trip and re-renders.
+- C16-X2: Active trip view now background-refreshes from the Worker every 12 seconds when no modal is open.
+- C16-X3: `addExpense()` now captures the form values, pulls the latest Worker trip, then appends the new expense to reduce stale overwrite risk.
+- C16-X4: `push()` now stores the Worker-returned trip back into local state after successful save.
+- C16-X5: New expenses now store `createdBy: state.uid`.
+- C16-X6: Expense edit/delete actions are shown only to the original expense creator.
+- C16-X7: Paid-by selector now defaults to the current app user while still allowing selection of another payer.
+- C16-X8: Receipt input is split into camera and gallery actions; camera input uses `capture="environment"`.
+- C16-X9: Attached receipts are downscaled to max 900px JPEG data URLs and saved with the expense for beta persistence.
+
+Proposed multi-party UAT:
+- UAT-A: Host creates a fresh trip and shares invite link.
+- UAT-B: User B joins from a separate device/browser and verifies their name appears in Members.
+- UAT-C: User B adds three expenses, including one with receipt photo, and verifies paid-by defaults to themselves.
+- UAT-D: Host leaves the trip open and confirms automatic refresh shows user B and all expenses within 12 seconds.
+- UAT-E: Host verifies user B expenses do not show edit/delete controls; user B verifies their own expenses do.
+- UAT-F: Host adds one expense after user B updates; verify it appends without removing user B member/expenses.
+- UAT-G: Reload both devices and verify Worker-persisted members, expenses, balances, and receipts.
+
+Status:
+- Code changes verified locally with two-session UAT and Worker persistence check. Ready for commit, push, and live smoke verification.
