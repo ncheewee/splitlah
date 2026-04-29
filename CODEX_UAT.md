@@ -315,6 +315,8 @@ Findings:
 - C13-F8: Local UAT showed owner-only `Edit trip` and `Delete trip` controls on the Members tab.
 - C13-F9: Local UAT showed `Share trip` no longer opens an intermediate share sheet; it invokes native share and falls back to copy.
 - C13-F10: Local console warning/error check was clean after home, profile, trip, members, and share checks.
+- C13-F11: GitHub Pages initially served the A/B Claude build artifact; Pages source was reset to `codex/redesign-mvp` and rebuilt commit `7f9a1ed`.
+- C13-F12: Live smoke showed `Edit profile`, no `Tokyo Trip` for the active Chee Wee identity, owner badges, Dashboard as left-most tab, and clean console warnings/errors.
 
 Fixes:
 - C13-X1: Home now filters to non-deleted trips where `state.uid` is a member.
@@ -327,4 +329,4 @@ Fixes:
 - C13-X8: Changed `Share trip` to launch native OS sharing directly with copy fallback.
 
 Status:
-- Code changes verified locally. Cloud purge still requires explicit deletion confirmation before proceeding.
+- Completed. Ownership/profile cleanup committed, pushed, and live-smoke verified. Cloud purge still requires explicit deletion confirmation before proceeding.
