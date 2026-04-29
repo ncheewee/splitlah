@@ -240,3 +240,32 @@ Fixes:
 
 Status:
 - Completed. Recommended to pause for app-code changes before wider beta.
+
+## Cycle 11
+Focus:
+- Improve beta readiness for a brand-new user without adding real auth or changing the backend schema.
+- Add editable PayNow profile details, expense editing, non-equal splits, and a friend-sharing path.
+- Verify a clean invite-link onboarding and join flow locally before publishing.
+
+Findings:
+- C11-F1: Clean local origin now starts with an empty trip list and opens a first-run `Set up profile` modal.
+- C11-F2: Saving profile name `Beta One` and PayNow proxy `97605390` updated the home greeting and seeded new trips with PayNow metadata.
+- C11-F3: Created local UAT trip `24UUP3` named `Beta Share Dinner`; the app opened the Members tab first for early setup.
+- C11-F4: Added `Beta Two`, then recorded `Skewed dinner` for S$100 with custom split S$70/S$30.
+- C11-F5: Header and balances correctly reflected the custom split: `Beta One` share S$70, net +S$30, `Beta Two` net -S$30.
+- C11-F6: Edited the same expense down to S$80 with custom split S$50/S$30; totals, share, expense row, and balances updated correctly.
+- C11-F7: Share trip modal displayed invite URL `http://127.0.0.1:8766/?join=24UUP3` plus trip code fallback.
+- C11-F8: Clean invite URL on a different local origin opened onboarding first, then prefilled join code `24UUP3`, and allowed `Invite Tester` with PayNow proxy `TESTPAYNOW` to join as a new person.
+- C11-F9: Late joiner did not retroactively owe for older custom-split expenses; their share remained S$0 for the existing expense.
+- C11-F10: Local console warning/error check was clean after onboarding, create, custom split, edit, share, and invite join.
+
+Fixes:
+- C11-X1: Removed demo-trip seeding for fresh visitors and added first-run profile onboarding.
+- C11-X2: Added editable PayNow proxy to profile settings and propagate the device profile to locally known member records.
+- C11-X3: Added custom amount splits for expenses while keeping equal split as the default.
+- C11-X4: Added expense edit flow for correcting description, amount, currency, payer, and split amounts.
+- C11-X5: Updated balance and personal-share calculations to respect stored custom split amounts.
+- C11-X6: Added trip sharing via invite link `?join=CODE` plus visible trip code.
+
+Status:
+- Code changes verified locally. Ready for commit, push, and live smoke verification.
