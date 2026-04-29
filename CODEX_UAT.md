@@ -330,3 +330,28 @@ Fixes:
 
 Status:
 - Completed. Ownership/profile cleanup committed, pushed, and live-smoke verified. Cloud purge still requires explicit deletion confirmation before proceeding.
+
+## Cycle 14
+Focus:
+- Add a production-style local app data migration for over-the-air updates.
+- Clean old beta/demo localStorage clutter without deleting shared cloud trips.
+- Remove personal-looking PayNow sample values from the UI.
+- Show country/region names alongside currency abbreviations.
+
+Findings:
+- C14-F1: Normal Chrome can keep old device-local `sl_codex_v1` state even after the static app code updates; incognito appears clean because it starts with empty localStorage.
+- C14-F2: Local UAT loaded a previously cluttered device origin and migrated it to an empty trip list while preserving the user profile greeting `Fresh Tester`.
+- C14-F3: Profile modal now uses neutral PayNow placeholder `+65 mobile or NRIC`.
+- C14-F4: New trip modal now uses neutral placeholder `Weekend trip` and join code placeholder `ABC123`.
+- C14-F5: Currency selector displayed country/region labels including `SGD - Singapore`, `MYR - Malaysia`, and `VND - Vietnam`.
+- C14-F6: Local console warning/error check was clean after migration, profile, and currency label verification.
+
+Fixes:
+- C14-X1: Added `APP_VERSION=14` and a local migration hook that runs before rendering.
+- C14-X2: Migration removes known beta/demo local trip codes and old Codex/Tokyo/Fresh Beta test trip names from device storage only.
+- C14-X3: Migration preserves profile/device identity and stamps `state.appVersion` for future incremental migrations.
+- C14-X4: Replaced personal-looking PayNow sample placeholder with a neutral value.
+- C14-X5: Currency options now show `CODE - Country/Region` labels while preserving the stored currency code value.
+
+Status:
+- Code changes verified locally. Ready for commit, push, and live smoke verification.
