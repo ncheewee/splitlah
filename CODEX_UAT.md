@@ -429,3 +429,37 @@ Proposed multi-party UAT:
 
 Status:
 - Completed. Multi-party sync, creator controls, and receipt handling committed, pushed, and live-smoke verified.
+
+## Cycle 17
+Focus:
+- Make receipt capture more obvious for beta testers.
+- Add an in-app beta feedback path.
+- Add a lightweight admin review surface without changing the Neon schema.
+
+Findings:
+- C17-F1: The split camera/gallery receipt buttons were visually small and duplicated the OS-level choice on iOS.
+- C17-F2: A single large `Add receipt` action with neutral helper text better matches both iOS and Android expectations.
+- C17-F3: Admin monitoring can start with sanitized aggregate trip summaries and explicit tester feedback before adding heavier analytics or real auth.
+- C17-F4: Local file-based in-app browser smoke showed the v17 banner, `Send beta feedback` entry, feedback modal, and single `Add receipt` button.
+- C17-F5: Local static checks passed for synced HTML, app script parsing, Worker module parsing, and whitespace.
+- C17-F6: Recreated the local Git repository as a standalone `.git` directory inside `/Users/cheewee/Desktop/SplitLah-Codex` so future commits no longer depend on the Claude worktree metadata.
+- C17-F7: Days and daily spend are misleading for advance bookings, flight/hotel costs, and post-trip spending, so they were removed from the primary trip summary.
+- C17-F8: Average per person is useful as a reference but should be visually secondary to `Your share` and `Total`, especially when selected/custom splits are used.
+- C17-F9: Settlement QR was too small for phone-to-phone payment workflows and needed an explicit save path for users switching to another payment app.
+- C17-F10: Worker deploy initially failed because dependencies were not installed in the recreated checkout; `npm ci` restored the locked dependencies and Worker deploy succeeded.
+- C17-F11: Live Worker UAT passed for `/health`, `POST /feedback`, `/admin/feedback`, and sanitized `/admin/summary`.
+- C17-F12: GitHub Pages was still pointed at `claude/redesign-mvp`; it was switched back to `codex/redesign-mvp` for Codex UAT.
+- C17-F13: Live GitHub Pages smoke showed v17 banner, feedback entry, simplified trip header without days/daily spend, larger receipt action, and clean console warnings/errors.
+
+Fixes:
+- C17-X1: Replaced the receipt camera/gallery pair with one larger `Add receipt` button and `Camera or photo library` helper text.
+- C17-X2: Added a beta feedback modal that captures rating, message, app version, screen, trip code, tester name, and tester id.
+- C17-X3: Added Worker `POST /feedback`, `GET /admin/feedback`, and `GET /admin/summary` routes using reserved JSON trip code `FDBACK` in the existing table.
+- C17-X4: Kept admin summary sanitized to aggregate counts, currencies, totals, and trip metadata instead of exposing PayNow proxies or receipt images.
+- C17-X5: Bumped app and service-worker cache version to v17.
+- C17-X6: Simplified the trip header to focus on `Your share`, `Total`, and secondary `Avg/person`; expense count moved into the metadata line.
+- C17-X7: Removed daily spending from the dashboard.
+- C17-X8: Enlarged PayNow QR to about 80% of screen width and added `Save QR image`.
+
+Status:
+- Completed. Feedback/admin Worker endpoints deployed, Codex branch pushed, Pages pointed to `codex/redesign-mvp`, and live smoke verified.
