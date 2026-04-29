@@ -403,6 +403,9 @@ Findings:
 - C16-F7: Local two-session UAT created trip `0FODTN` (`Lunch @ Vivo UAT`) as host, joined from a second origin as user `L`, and added `L coffee`, `L toast`, and `L juice`.
 - C16-F8: Host session refreshed to show member `L` and all three `L` expenses with total S$12 and 2 members.
 - C16-F9: Worker verification for `0FODTN` returned members `Fresh Tester`, `L`; all three expenses were paid by `L`, created by `L`, and persisted in Neon/Worker JSON.
+- C16-F10: GitHub Pages built commit `950359e` successfully after source was confirmed as `codex/redesign-mvp`.
+- C16-F11: Live smoke showed `APP_VERSION=16`, background refresh hook, `createdBy` persistence, camera capture input, and receipt persistence code present.
+- C16-F12: Live smoke created trip `Y9S5DY` (`Cycle 16 Smoke`) and verified paid-by defaulted to current user `Chee Wee`, camera/gallery buttons were visible, and console warnings/errors were clean.
 
 Fixes:
 - C16-X1: `openTrip()` now renders local data quickly, then pulls the latest Worker trip and re-renders.
@@ -425,4 +428,4 @@ Proposed multi-party UAT:
 - UAT-G: Reload both devices and verify Worker-persisted members, expenses, balances, and receipts.
 
 Status:
-- Code changes verified locally with two-session UAT and Worker persistence check. Ready for commit, push, and live smoke verification.
+- Completed. Multi-party sync, creator controls, and receipt handling committed, pushed, and live-smoke verified.
