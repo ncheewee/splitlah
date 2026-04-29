@@ -516,3 +516,29 @@ Fixes:
 
 Status:
 - Completed. Cycle 19 UX/navigation fixes committed, pushed, and live-smoke verified.
+
+## Cycle 20
+Focus:
+- Address beta feedback on tab back behavior, dashboard colour meaning, receipt/expense inspection, FX edits, and trip management placement.
+
+Findings:
+- C20-F1: Gesture back should leave the trip and return to Trips instead of stepping through Dashboard/Expenses/Balances/Members tabs.
+- C20-F2: Dashboard donut colours were static and did not match member avatar colours, making the chart hard to trust.
+- C20-F3: `Your share` needed stronger visual emphasis than the secondary summary numbers.
+- C20-F4: Receipt thumbnails and expense rows needed a detail view so users can inspect receipt photos, split mode, FX rate, and split allocation.
+- C20-F5: Editing a foreign-currency expense did not expose the exchange rate, so correcting FX mistakes required recreating the expense.
+- C20-F6: Trip edit/delete under Members was not discoverable enough for owners.
+- C20-F7: Local file-based in-app browser smoke confirmed v20 marker, title edit pencil, highlighted `Your share`, tab back returning to Trips, expense detail modal, split detail, FX display, and clean console warnings/errors.
+
+Fixes:
+- C20-X1: Tab changes no longer push browser history entries; back from any trip tab returns to Trips.
+- C20-X2: Dashboard donut segments now use each member's avatar colour and actual paid proportions.
+- C20-X3: `Your share` card now uses the light mint treatment for emphasis.
+- C20-X4: Expense rows open a detail sheet with receipt preview, paid-by, amount, original currency, FX rate, split mode, and split detail.
+- C20-X5: Receipt thumbnails open an enlarged receipt view.
+- C20-X6: Expense edit now includes editable exchange rate to SGD.
+- C20-X7: Owner trip edit moved to a pencil button beside the trip title; delete is available from that edit sheet, and the old Members-tab owner tools were removed.
+- C20-X8: Bumped app and service-worker cache version to v20.
+
+Status:
+- Local fix verification passed. Live UAT pending push.

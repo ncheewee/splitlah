@@ -1,4 +1,4 @@
-const CACHE_NAME = 'splitlah-shell-v19';
+const CACHE_NAME = 'splitlah-shell-v20';
 const SHELL = [
   './',
   './index.html',
