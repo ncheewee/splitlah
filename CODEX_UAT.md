@@ -258,6 +258,7 @@ Findings:
 - C11-F8: Clean invite URL on a different local origin opened onboarding first, then prefilled join code `24UUP3`, and allowed `Invite Tester` with PayNow proxy `TESTPAYNOW` to join as a new person.
 - C11-F9: Late joiner did not retroactively owe for older custom-split expenses; their share remained S$0 for the existing expense.
 - C11-F10: Local console warning/error check was clean after onboarding, create, custom split, edit, share, and invite join.
+- C11-F11: GitHub Pages built commit `5a75538`; fresh in-app live smoke showed `Share trip`, equal/custom split mode, expense `Edit` buttons, and clean console warnings/errors.
 
 Fixes:
 - C11-X1: Removed demo-trip seeding for fresh visitors and added first-run profile onboarding.
@@ -268,4 +269,4 @@ Fixes:
 - C11-X6: Added trip sharing via invite link `?join=CODE` plus visible trip code.
 
 Status:
-- Code changes verified locally. Ready for commit, push, and live smoke verification.
+- Completed. Beta-readiness controls committed, pushed, and live-smoke verified.
