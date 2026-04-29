@@ -529,6 +529,8 @@ Findings:
 - C20-F5: Editing a foreign-currency expense did not expose the exchange rate, so correcting FX mistakes required recreating the expense.
 - C20-F6: Trip edit/delete under Members was not discoverable enough for owners.
 - C20-F7: Local file-based in-app browser smoke confirmed v20 marker, title edit pencil, highlighted `Your share`, tab back returning to Trips, expense detail modal, split detail, FX display, and clean console warnings/errors.
+- C20-F8: Live GitHub Pages smoke confirmed v20 marker, title edit pencil, tab back returning to Trips from Expenses, expense detail modal, FX/split details, and clean console warnings/errors.
+- C20-F9: Live dashboard donut style used member avatar colours in paid proportions for the three-user UAT trip.
 
 Fixes:
 - C20-X1: Tab changes no longer push browser history entries; back from any trip tab returns to Trips.
@@ -541,4 +543,4 @@ Fixes:
 - C20-X8: Bumped app and service-worker cache version to v20.
 
 Status:
-- Local fix verification passed. Live UAT pending push.
+- Completed. Cycle 20 expense/detail and trip-control fixes committed, pushed, and live-smoke verified.
