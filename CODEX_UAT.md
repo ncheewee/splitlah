@@ -463,3 +463,25 @@ Fixes:
 
 Status:
 - Completed. Feedback/admin Worker endpoints deployed, Codex branch pushed, Pages pointed to `codex/redesign-mvp`, and live smoke verified.
+
+## Cycle 18
+Focus:
+- Fix beta regressions from Pixel 8 and iPad: expense form clearing, Android receipt camera access, QR save/import reliability, and compressed dashboard layout.
+- Run a 3-user UAT after the fix.
+
+Findings:
+- C18-F1: Expense entry was being wiped by the 12-second background refresh while the user was typing or choosing split mode.
+- C18-F2: Android needs an explicit `capture="environment"` input to offer camera capture; the single generic image input can show gallery only.
+- C18-F3: Saved QR images need an actual white quiet-zone border in the exported PNG, not only CSS padding around the on-screen QR.
+- C18-F4: Dashboard looked compressed after removing daily spending because `Settle up` was still tucked inside the net-balance card.
+- C18-F5: Local file-based in-app browser smoke confirmed v18 marker, receipt choice UI, dashboard settle panel, form values surviving past the refresh interval, successful expense add, and clean console warnings/errors.
+
+Fixes:
+- C18-X1: Background refresh now skips while the Expenses form has focus, typed values, or an attached receipt.
+- C18-X2: `Add receipt` now opens a small choice sheet with `Take photo` and `Choose image`; the camera path uses `capture="environment"`.
+- C18-X3: Saved QR PNGs are generated on a 1024px white canvas with a quiet-zone border.
+- C18-X4: Dashboard now gives `Settle up` its own full-width card below `Who paid` and `Net balance`.
+- C18-X5: Bumped app and service-worker cache version to v18.
+
+Status:
+- Local fix verification passed. Live 3-user UAT pending push.
