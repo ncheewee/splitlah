@@ -503,6 +503,7 @@ Findings:
 - C19-F5: The feedback button on Home needed more breathing room before the trip cards.
 - C19-F6: Dashboard member lists need to scale more gracefully than a tight two-column card layout.
 - C19-F7: Local file-based in-app browser smoke confirmed v19 marker, simpler feedback sheet, visible `Started by`, lower Back/Share actions, dashboard/list layout, and browser back navigation from Expenses to Dashboard to Home with clean console warnings/errors.
+- C19-F8: Live GitHub Pages smoke confirmed v19 marker, home feedback spacing/form simplification, visible `Started by`, lower Back/Share actions, and browser back navigation from Expenses to Dashboard to Home with clean console warnings/errors.
 
 Fixes:
 - C19-X1: Added lightweight history states for Home, Trip tabs, Settle, and Paid screens so browser/PWA back maps to in-app navigation.
@@ -514,4 +515,4 @@ Fixes:
 - C19-X7: Bumped app and service-worker cache version to v19.
 
 Status:
-- Local fix verification passed. Live UAT pending push.
+- Completed. Cycle 19 UX/navigation fixes committed, pushed, and live-smoke verified.
