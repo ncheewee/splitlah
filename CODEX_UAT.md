@@ -564,4 +564,4 @@ Fixes:
 - C21-X5: Bumped app and service-worker cache version to v21.
 
 Status:
-- In progress. Local checks passed; awaiting commit, push, and live smoke.
+- Completed. Cycle 21 visual polish and app-build lessons committed, pushed, and live-smoke verified. Live QR frame was code-deployed but the available live settlement path was declaration mode because the payee had no PayNow proxy.
