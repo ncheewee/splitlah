@@ -586,3 +586,21 @@ Fixes:
 
 Status:
 - Completed. Cycle 22 committed, pushed, and live-smoke verified. Public HTML served v22 immediately; the in-app browser needed one reload for the service worker to activate the v22 shell.
+
+## Cycle 23
+Focus:
+- Make expense detail receipts inspectable without pushing the key expense details below the fold.
+
+Findings:
+- C23-F1: Receipt images in expense detail used the large full-receipt treatment, so users often had to scroll before seeing paid-by, amount, FX, split mode, and split detail.
+- C23-F2: The detail sheet needs a bounded receipt viewport, while the existing full receipt view can remain the larger inspection mode.
+- C23-F3: Local structural checks confirmed v23 marker, synced HTML copies, clean script parsing, and receipt detail rendering through a bounded `receiptPane` with contained scrolling and tap-to-zoom class toggle.
+
+Fixes:
+- C23-X1: Added a `receiptPane` container with a fixed viewport height, internal scrolling, touch pan/pinch behavior, and overscroll containment.
+- C23-X2: Expense detail now places receipt images inside that pane so the amount and split details stay close on screen.
+- C23-X3: Tapping the receipt pane toggles a zoomed image width for quick inspection without resizing surrounding text.
+- C23-X4: Bumped app and service-worker cache version to v23.
+
+Status:
+- In progress. Local checks passed; awaiting commit, push, and live smoke.
