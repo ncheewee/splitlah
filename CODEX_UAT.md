@@ -628,3 +628,24 @@ Fixes:
 
 Status:
 - Completed. Cycle 24 committed, pushed, and live-smoke verified. Public v24 showed the share sheet and direct member invite identity resolution with clean console warnings/errors.
+
+## Cycle 25
+Focus:
+- Make foreign-currency expense entry follow the trip currency by default and make editable FX values match the displayed rate.
+
+Findings:
+- C25-F1: Expense creation still showed a full currency dropdown and defaulted to SGD, even when the trip was created with a different default currency.
+- C25-F2: FX copy displayed the intuitive direction, such as `1 SGD = 3.5088 MYR`, but the editable field still showed the internal SGD-per-foreign-unit rate, such as `0.285`.
+- C25-F3: Beta feedback showed background refresh could wipe slow in-progress form entries outside the expense tab, especially member entry.
+- C25-F4: Latest beta feedback also reinforced that the next build should prioritize FX clarity and form stability before adding more beta testers.
+
+Fixes:
+- C25-X1: Expense creation now defaults to the trip currency and hides the full currency picker behind a smaller `Change` action.
+- C25-X2: FX display and editable value now use the same direction; internal SGD rates are converted only at save time.
+- C25-X3: Added an SGD-equivalent preview that updates as amount or exchange-rate edits change.
+- C25-X4: Expense editing now uses the same display-rate model and preserves creator-only edit/delete control.
+- C25-X5: Background refresh is now skipped while any trip-tab form input is focused or populated, not only while the expense form is dirty.
+- C25-X6: Bumped app and service-worker cache version to v25.
+
+Status:
+- In progress. Local and live verification pending.
