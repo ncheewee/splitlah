@@ -668,4 +668,4 @@ Fixes:
 - C26-X5: Bumped app and service-worker cache version to v26.
 
 Status:
-- In progress. Local and live verification pending.
+- Completed. Cycle 26 committed, pushed, and live-smoke verified by public Pages asset checks: the live HTML served v26 with the review expense flow and edit chip, and the service worker served `splitlah-shell-v26`.
