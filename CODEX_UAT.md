@@ -565,3 +565,24 @@ Fixes:
 
 Status:
 - Completed. Cycle 21 visual polish and app-build lessons committed, pushed, and live-smoke verified. Live QR frame was code-deployed but the available live settlement path was declaration mode because the payee had no PayNow proxy.
+
+## Cycle 22
+Focus:
+- Improve dashboard data labels, settlement readability, owner member management, and foreign-exchange display clarity.
+
+Findings:
+- C22-F1: Donut segments needed amount and percentage labels, but inline labels on the ring would likely clutter the small mobile chart.
+- C22-F2: Settlement rows used a thin text arrow that did not read strongly enough as payer-to-payee direction.
+- C22-F3: Trip owners could add members but had no way to remove accidental inactive members.
+- C22-F4: FX display was technically correct as `1 foreign = SGD`, but users expect the stronger currency on the left: for weaker currencies show `1 SGD = X foreign`; for stronger currencies show `1 foreign = X SGD`.
+- C22-F5: Local file-based in-app browser smoke confirmed v22 marker, MYR rate shown as `1 SGD = 3.5088 MYR`, owner-only remove button for an inactive member, successful member removal, compact donut amount/percentage chips, and clean console warnings/errors.
+
+Fixes:
+- C22-X1: Added compact modern donut label chips showing member initials, amount paid, and percentage paid.
+- C22-X2: Restyled settle-up arrows as a larger bold centered arrow shared by dashboard and balances settlement rows.
+- C22-X3: Added owner-only member removal for inactive non-owner members; members tied to expenses, splits, or settlements are protected.
+- C22-X4: Added `fxDisplay()` so exchange-rate copy flips to the intuitive larger-currency direction while preserving the editable SGD-per-unit rate used for calculations.
+- C22-X5: Bumped app and service-worker cache version to v22.
+
+Status:
+- In progress. Local checks passed; awaiting commit, push, and live smoke.
