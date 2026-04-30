@@ -604,3 +604,27 @@ Fixes:
 
 Status:
 - Completed. Cycle 23 committed, pushed, and live-smoke verified. Public HTML served v23 after Pages propagation, and the in-app browser loaded the v23 shell with clean console warnings/errors.
+
+## Cycle 24
+Focus:
+- Rework social invite flow for lower-friction distribution through group chats and direct member links.
+
+Findings:
+- C24-F1: A plain app URL should remain a cold start with `New trip` primary and `Join code` as backup.
+- C24-F2: A group trip link should resolve identity before showing full trip details, because a WhatsApp group link does not imply which person clicked it.
+- C24-F3: A direct member link should suggest that member but still allow choosing someone else or joining as new.
+- C24-F4: Clicking `I'm not listed` must not immediately add the current local profile; it needs a confirmation/name form to prevent accidental joins.
+- C24-F5: Claiming an existing member should be per-trip, not a global device identity replacement, so users do not lose other local trips after claiming a role in one shared trip.
+- C24-F6: Local in-app browser smoke confirmed v24 marker, share sheet with group/specific/code options, group invite identity resolution for trip `5B2OYE`, direct member suggestion via `member=...`, `I'm not listed` confirmation form, and clean console warnings/errors.
+
+Fixes:
+- C24-X1: Added `member` query parameter support for direct member invite links.
+- C24-X2: Changed `?join=CODE` links to open an identity-resolution sheet with trip preview, existing member choices, and `I'm not listed`.
+- C24-X3: Added per-trip claimed member mapping in local state so existing-member claims do not overwrite the device's global profile.
+- C24-X4: Reworked `Share trip` into a sheet with `Share group invite`, `Invite specific person`, `Copy invite link`, and `Copy trip code`.
+- C24-X5: Added a specific-person invite sheet that generates `?join=CODE&member=MEMBER_ID` links.
+- C24-X6: `I'm not listed` now opens a name/PayNow confirmation form before adding a new member.
+- C24-X7: Bumped app and service-worker cache version to v24.
+
+Status:
+- In progress. Local checks passed; awaiting commit, push, and live smoke.
