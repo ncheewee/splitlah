@@ -544,3 +544,24 @@ Fixes:
 
 Status:
 - Completed. Cycle 20 expense/detail and trip-control fixes committed, pushed, and live-smoke verified.
+
+## Cycle 21
+Focus:
+- Polish trip visuals for beta readability: clearer donut/member colours, cleaner PayNow QR framing, lighter trip edit affordance, and simpler trip header copy.
+
+Findings:
+- C21-F1: Pastel avatar colours were too close together, so dashboard donut segments were not one-glance meaningful.
+- C21-F2: The QR export was functionally scannable, but the on-screen frame and saved image needed a single even green border around a square QR.
+- C21-F3: The owner pencil inherited the dark ghost-button fill, making it look heavier than intended.
+- C21-F4: The trip header was carrying member/expense counts plus owner-control copy directly under the title, creating too much noise.
+- C21-F5: Local file-based in-app browser smoke confirmed the v21 marker, simplified header, outline-only pencil control, higher-contrast avatar/donut colour treatment, and clean console warnings/errors.
+
+Fixes:
+- C21-X1: Replaced the soft avatar palette with a higher-contrast deterministic palette and normalized member colours so existing trips render with clearer chart segments.
+- C21-X2: Updated PayNow QR display and saved PNG output to use a single green square border with a white QR quiet zone.
+- C21-X3: Restyled the title edit affordance as a small transparent pencil button with a white outline.
+- C21-X4: Reduced trip header metadata to only trip code and starter name.
+- C21-X5: Bumped app and service-worker cache version to v21.
+
+Status:
+- In progress. Local checks passed; awaiting commit, push, and live smoke.
