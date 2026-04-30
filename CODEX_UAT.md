@@ -650,3 +650,22 @@ Fixes:
 
 Status:
 - Completed. Cycle 25 committed, pushed, and live-smoke verified by public Pages asset checks: the live HTML served v25, included the trip-currency expense UI, matched FX display/edit helpers, and the service worker served `splitlah-shell-v25`.
+
+## Cycle 26
+Focus:
+- Clean up small UI rough edges and add an expense review step before writing shared data.
+
+Findings:
+- C26-F1: FX panels still showed implementation/status copy such as fallback/cached estimates, which added noise without helping normal users.
+- C26-F2: Modal close buttons and the trip edit pencil had bordered button styling that looked heavy beside otherwise compact mobile sheets.
+- C26-F3: Equal split did not show each member's share before adding an expense, so users had to commit first and inspect after.
+
+Fixes:
+- C26-X1: Removed FX source/status helper copy from add/edit expense screens while keeping the exchange-rate value editable.
+- C26-X2: Restyled modal close controls as a simple bare `X`.
+- C26-X3: Replaced the trip-title pencil with a small uppercase `EDIT` chip.
+- C26-X4: Changed add expense into a review-and-confirm flow with amount, payer, FX summary, receipt indicator, and per-member split preview.
+- C26-X5: Bumped app and service-worker cache version to v26.
+
+Status:
+- In progress. Local and live verification pending.
