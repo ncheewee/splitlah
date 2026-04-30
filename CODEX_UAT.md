@@ -638,6 +638,7 @@ Findings:
 - C25-F2: FX copy displayed the intuitive direction, such as `1 SGD = 3.5088 MYR`, but the editable field still showed the internal SGD-per-foreign-unit rate, such as `0.285`.
 - C25-F3: Beta feedback showed background refresh could wipe slow in-progress form entries outside the expense tab, especially member entry.
 - C25-F4: Latest beta feedback also reinforced that the next build should prioritize FX clarity and form stability before adding more beta testers.
+- C25-F5: Dedicated in-app browser automation was unavailable in this session, and Computer Use was blocked from controlling the Codex app, so live verification used public asset checks instead of click-through browser automation.
 
 Fixes:
 - C25-X1: Expense creation now defaults to the trip currency and hides the full currency picker behind a smaller `Change` action.
@@ -648,4 +649,4 @@ Fixes:
 - C25-X6: Bumped app and service-worker cache version to v25.
 
 Status:
-- In progress. Local and live verification pending.
+- Completed. Cycle 25 committed, pushed, and live-smoke verified by public Pages asset checks: the live HTML served v25, included the trip-currency expense UI, matched FX display/edit helpers, and the service worker served `splitlah-shell-v25`.
