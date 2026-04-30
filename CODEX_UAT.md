@@ -627,4 +627,4 @@ Fixes:
 - C24-X7: Bumped app and service-worker cache version to v24.
 
 Status:
-- In progress. Local checks passed; awaiting commit, push, and live smoke.
+- Completed. Cycle 24 committed, pushed, and live-smoke verified. Public v24 showed the share sheet and direct member invite identity resolution with clean console warnings/errors.
