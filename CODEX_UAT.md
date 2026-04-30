@@ -585,4 +585,4 @@ Fixes:
 - C22-X5: Bumped app and service-worker cache version to v22.
 
 Status:
-- In progress. Local checks passed; awaiting commit, push, and live smoke.
+- Completed. Cycle 22 committed, pushed, and live-smoke verified. Public HTML served v22 immediately; the in-app browser needed one reload for the service worker to activate the v22 shell.
