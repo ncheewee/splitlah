@@ -716,4 +716,4 @@ Fixes:
 - C28-X8: Bumped app and service-worker cache version to v28.
 
 Status:
-- In progress. Local, Worker, and live verification pending.
+- Completed. Cycle 28 committed, pushed, Worker-deployed, and live-smoke verified. Worker `GET /fx/MYR` returned `1 SGD = 3.1168 MYR`; public Pages served v28 with the floating expense action, custom select menus, simplified dashboard labels, owner-only member add controls, and service worker `splitlah-shell-v28`.
