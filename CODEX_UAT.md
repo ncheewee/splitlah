@@ -760,4 +760,4 @@ Fixes:
 - C30-X6: Bumped app and service-worker cache version to v30.
 
 Status:
-- Local UAT passed in the in-app browser via DOM/interaction checks. Verified v30 home/trip headers, expense sort/filter controls, aligned expense rows with dates, three-part add expense flow, review screen with date and split preview, and cleaned member badges/paid amounts. In-app screenshot capture timed out, but browser interaction and DOM verification succeeded. Commit/push and live Pages smoke remain.
+- Completed. Local UAT passed in the in-app browser via DOM/interaction checks. Verified v30 home/trip headers, expense sort/filter controls, aligned expense rows with dates, three-part add expense flow, review screen with date and split preview, and cleaned member badges/paid amounts. In-app screenshot capture timed out, but browser interaction and DOM verification succeeded. Cycle 30 committed, pushed, and public Pages smoke verified v30 HTML markers plus service worker `splitlah-shell-v30`.
