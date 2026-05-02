@@ -739,3 +739,25 @@ Fixes:
 
 Status:
 - Completed. Local UAT passed in the in-app browser: verified v29 home and trip screens, top BACK/SHARE chips, separated FEEDBACK and ADD EXPENSE chips, owner member edit modal, callout payer donut, and Settle tab without net-balance duplication. Cycle 29 committed and pushed. Public Pages smoke verified v29 HTML markers and service worker `splitlah-shell-v29`.
+
+## Cycle 30
+Focus:
+- Improve the core expense and member workflows using v29 beta feedback, while leaving larger chart/category and trip-lifecycle changes for design discussion.
+
+Findings:
+- C30-F1: v29 feedback said the add-expense flow worked but needed clearer guidance, with distinct description/receipt, amount/currency, and split sections.
+- C30-F2: Expense rows were visually inconsistent when some rows had receipt thumbnails and others had payer avatars.
+- C30-F3: Expenses needed editable dates plus simple sorting/filtering for date, payer, and highest spend.
+- C30-F4: Members list over-explained generic membership and used a second line for paid amounts.
+- C30-F5: Top trip actions needed clearer full-cap labels, and the trip edit chip still looked slightly too tall.
+
+Fixes:
+- C30-X1: Rebuilt add/edit expense sheets into three numbered sections and added an editable expense date defaulting to today.
+- C30-X2: Expense list rows now use a stable media column with receipt/placeholder plus a mini payer avatar, simplified subtitle to date, and expose sort/filter controls.
+- C30-X3: Expense detail/review surfaces now show the selected date.
+- C30-X4: Members list now shows only meaningful badges (`Me`, `Owner`, `PayNow set`) and keeps paid amount on one line.
+- C30-X5: Trip header is sticky, top actions now read `BACK TO TRIPS` and `SHARE THIS TRIP`, and the `EDIT` chip height was reduced.
+- C30-X6: Bumped app and service-worker cache version to v30.
+
+Status:
+- Local UAT passed in the in-app browser via DOM/interaction checks. Verified v30 home/trip headers, expense sort/filter controls, aligned expense rows with dates, three-part add expense flow, review screen with date and split preview, and cleaned member badges/paid amounts. In-app screenshot capture timed out, but browser interaction and DOM verification succeeded. Commit/push and live Pages smoke remain.
