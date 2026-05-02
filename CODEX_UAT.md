@@ -717,3 +717,25 @@ Fixes:
 
 Status:
 - Completed. Cycle 28 committed, pushed, Worker-deployed, and live-smoke verified. Worker `GET /fx/MYR` returned `1 SGD = 3.1168 MYR`; public Pages served v28 with the floating expense action, custom select menus, simplified dashboard labels, owner-only member add controls, and service worker `splitlah-shell-v28`.
+
+## Cycle 29
+Focus:
+- Reduce trip-screen crowding, make expense/feedback actions more obvious, improve dashboard payer visualization, and let owners maintain member details after adding people.
+
+Findings:
+- C29-F1: Admin feedback had no newer unresolved items beyond the existing FX/profile/invite notes already addressed or queued.
+- C29-F2: The trip body still carried bottom navigation/share buttons, crowding the same area as the key expense action.
+- C29-F3: Added members could not be corrected later, so owners had no recovery path for typoed names or missing PayNow details.
+- C29-F4: The payer donut labels were compact but not yet the callout-style view requested for quicker one-glance reading.
+- C29-F5: Dashboard and Balances both exposed settlement-related information, making the section intent blurrier than needed.
+
+Fixes:
+- C29-X1: Moved trip BACK and SHARE controls to compact top chips, removed bottom trip actions, and made the sticky action read `ADD EXPENSE`.
+- C29-X2: Added a persistent `FEEDBACK` chip available across screens, with the existing feedback payload still attaching screen, trip, actor, and app version.
+- C29-X3: Added owner-only member edit controls for name and PayNow proxy; editing the current device member also updates local profile details.
+- C29-X4: Renamed `Balances` to `Settle` and removed net-balance duplication from that tab, leaving settlement payments there only.
+- C29-X5: Reworked `Who paid` into a callout/list toggle remembered locally, with callouts showing amount and percentage labels around the donut.
+- C29-X6: Refined the trip title `EDIT` chip styling and bumped app/service-worker cache version to v29.
+
+Status:
+- Local UAT passed in the in-app browser. Verified v29 home and trip screens, top BACK/SHARE chips, separated FEEDBACK and ADD EXPENSE chips, owner member edit modal, callout payer donut, and Settle tab without net-balance duplication. Commit/push and live Pages smoke remain.
