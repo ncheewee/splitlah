@@ -669,3 +669,26 @@ Fixes:
 
 Status:
 - Completed. Cycle 26 committed, pushed, and live-smoke verified by public Pages asset checks: the live HTML served v26 with the review expense flow and edit chip, and the service worker served `splitlah-shell-v26`.
+
+## Cycle 27
+Focus:
+- Fix claimed-member profile/PayNow sync, improve trip edit chip alignment, and add a beta admin dashboard.
+
+Findings:
+- C27-F1: Feedback and live trip inspection showed Kenneth's PayNow was still blank in shared trip `9L7E48`, even after he added PayNow locally, so settlement QR could not render on another device.
+- C27-F2: The cause is direct-member claiming: `saveSettings()` updated `members[state.uid]`, but a direct invite maps the device to a pre-added member id via `state.claims[tripCode]`.
+- C27-F3: The `EDIT` trip chip sat visually high beside the title because the title row inherited heading margins.
+- C27-F4: Feedback also flagged duplicated native share URLs and non-numeric mobile keyboards for expense entry.
+- C27-F5: Admin monitoring needed a single route that combines summary, recent trips, attention areas, and feedback.
+
+Fixes:
+- C27-X1: Profile saves now update the claimed member id for each trip, falling back to the device uid only when no claim exists.
+- C27-X2: Claiming an existing member now adopts that member's name locally and prompts profile/PayNow completion when missing.
+- C27-X3: Restyled the trip title row so the `EDIT` chip is vertically centered with the title.
+- C27-X4: Added `inputmode` hints for amount, FX rate, and PayNow fields.
+- C27-X5: Removed duplicated URLs from native share text while preserving the native `url` payload.
+- C27-X6: Added `?admin=dashboard` with beta overview cards, needs-attention list, recent trips, and latest feedback.
+- C27-X7: Bumped app and service-worker cache version to v27.
+
+Status:
+- In progress. Local and live verification pending.
