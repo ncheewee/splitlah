@@ -691,4 +691,4 @@ Fixes:
 - C27-X7: Bumped app and service-worker cache version to v27.
 
 Status:
-- In progress. Local and live verification pending.
+- Completed. Cycle 27 committed, pushed, and live-smoke verified by public Pages asset checks: the live HTML served v27 with claimed-member profile sync, admin dashboard route, inputmode hints, share text fix, and centered title edit chip; the service worker served `splitlah-shell-v27`.
