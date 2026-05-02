@@ -692,3 +692,28 @@ Fixes:
 
 Status:
 - Completed. Cycle 27 committed, pushed, and live-smoke verified by public Pages asset checks: the live HTML served v27 with claimed-member profile sync, admin dashboard route, inputmode hints, share text fix, and centered title edit chip; the service worker served `splitlah-shell-v27`.
+
+## Cycle 28
+Focus:
+- Tighten trip UX around expense entry, member control, dashboard density, dropdown styling, and current FX rates.
+
+Findings:
+- C28-F1: Admin feedback still showed FX rates as stale; the Worker source is in this repo, so a proper backend-mediated FX endpoint is possible without changing the Neon schema.
+- C28-F2: Expense creation is a primary trip action, but it lived only inside the Expenses tab.
+- C28-F3: Non-owner members could see the add-member form, which conflicts with owner control and adds noise.
+- C28-F4: The dashboard repeated “Who paid” data below the donut, wasting vertical space.
+- C28-F5: Currency changes required an extra `Change` click before exposing the selector.
+- C28-F6: Native dropdowns were visually inconsistent with the app.
+
+Fixes:
+- C28-X1: Added Worker `GET /fx/:CURRENCY`, fetching SGD-based rates from Open ER API and caching responses for six hours at the Worker edge.
+- C28-X2: Frontend FX now tries the Worker live FX endpoint before falling back to local estimates.
+- C28-X3: Added a sticky `+ Expense` action inside trips and moved the add-expense form into a modal review flow.
+- C28-X4: Expense currency is now visible as a styled selector from the start, defaulting to trip currency.
+- C28-X5: Replaced local select rendering with app-styled custom select menus for consistent dropdown UI.
+- C28-X6: Members add form is owner-only; non-owners only see the member list.
+- C28-X7: Simplified dashboard “Who paid” to donut plus compact labels, removing the repeated list below.
+- C28-X8: Bumped app and service-worker cache version to v28.
+
+Status:
+- In progress. Local, Worker, and live verification pending.

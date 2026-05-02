@@ -18,6 +18,11 @@ function codeFromPath(pathname) {
   return m && m[1];
 }
 
+function fxCodeFromPath(pathname) {
+  const m = pathname.match(/^\/fx\/([A-Z]{3})$/);
+  return m && m[1];
+}
+
 function cleanText(value, max = 500) {
   return String(value || '').trim().slice(0, max);
 }
@@ -77,6 +82,31 @@ export default {
     try {
       const url = new URL(request.url);
       if (url.pathname === '/health') return json({ ok: true });
+      const fxCode = fxCodeFromPath(url.pathname);
+      if (fxCode && request.method === 'GET') {
+        if (fxCode === 'SGD') return json({ rate: 1, source: 'SGD', asOf: new Date().toISOString() });
+        const cache = caches.default;
+        const cacheKey = new Request('https://splitlah.local/fx/' + fxCode);
+        const cached = await cache.match(cacheKey);
+        if (cached) return cached;
+        const upstream = await fetch('https://open.er-api.com/v6/latest/SGD', {
+          cf: { cacheTtl: 21600, cacheEverything: true }
+        });
+        const data = await upstream.json();
+        const perSgd = +(data?.rates?.[fxCode] || 0);
+        if (!upstream.ok || data?.result === 'error' || !isFinite(perSgd) || perSgd <= 0) {
+          return json({ error: 'FX rate unavailable' }, 502);
+        }
+        const response = json({
+          rate: Math.round((1 / perSgd) * 100000000) / 100000000,
+          displayRate: Math.round(perSgd * 10000) / 10000,
+          source: 'Open ER API',
+          asOf: data.time_last_update_utc || new Date().toISOString()
+        });
+        response.headers.set('Cache-Control', 'public, max-age=21600');
+        await cache.put(cacheKey, response.clone());
+        return response;
+      }
       if (!env.DATABASE_URL) return json({ error: 'DATABASE_URL secret missing' }, 500);
       const sql = neon(env.DATABASE_URL);
 
