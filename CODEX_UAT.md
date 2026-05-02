@@ -738,4 +738,4 @@ Fixes:
 - C29-X6: Refined the trip title `EDIT` chip styling and bumped app/service-worker cache version to v29.
 
 Status:
-- Local UAT passed in the in-app browser. Verified v29 home and trip screens, top BACK/SHARE chips, separated FEEDBACK and ADD EXPENSE chips, owner member edit modal, callout payer donut, and Settle tab without net-balance duplication. Commit/push and live Pages smoke remain.
+- Completed. Local UAT passed in the in-app browser: verified v29 home and trip screens, top BACK/SHARE chips, separated FEEDBACK and ADD EXPENSE chips, owner member edit modal, callout payer donut, and Settle tab without net-balance duplication. Cycle 29 committed and pushed. Public Pages smoke verified v29 HTML markers and service worker `splitlah-shell-v29`.
