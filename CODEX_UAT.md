@@ -761,3 +761,26 @@ Fixes:
 
 Status:
 - Completed. Local UAT passed in the in-app browser via DOM/interaction checks. Verified v30 home/trip headers, expense sort/filter controls, aligned expense rows with dates, three-part add expense flow, review screen with date and split preview, and cleaned member badges/paid amounts. In-app screenshot capture timed out, but browser interaction and DOM verification succeeded. Cycle 30 committed, pushed, and public Pages smoke verified v30 HTML markers plus service worker `splitlah-shell-v30`.
+
+## Cycle 31
+Focus:
+- Consolidate Claude v38 work back into the Codex branch, then address latest beta feedback in one high-care pass.
+
+Findings:
+- C31-F1: Latest feedback added one new empty-state issue: the home screen should not mention joining by trip code.
+- C31-F2: Pre-added members who clicked `This is me` were not writing their joined state back to the shared trip, so owners could remain stale after invite acceptance.
+- C31-F3: Edit-mode receipt capture attached to the new-expense receipt variable, so the row could fail to show the edited receipt after saving.
+- C31-F4: Date sorting compared only the calendar date, so same-day expenses did not sort latest/earliest correctly.
+- C31-F5: The imported v38 trip header could still scroll away and the setup flow still did not clearly guide owners to add members before starting.
+
+Fixes:
+- C31-X1: Restored Codex identity and bumped app/service-worker cache version to v39.
+- C31-X2: Added trip setup state for newly created trips, owner setup card, invited/joined member badges, and a `Start trip` action before expense entry.
+- C31-X3: Claiming a pre-added member now marks that member as joined and pushes the shared trip update immediately.
+- C31-X4: Fixed edit receipt persistence, removed the useless `Saved locally` wording, and separated receipt thumbnails from avatars.
+- C31-X5: Same-day date sorting now uses expense timestamps; new expenses keep current time and edited expenses preserve their original time.
+- C31-X6: Added sticky compact trip header behavior, centered/fat-finger new trip/profile modals, upward trip-currency dropdown, larger Sankey labels, and a settle-mode toggle between least transfers and payer-based reimbursements.
+- C31-X7: Expense review `Back to edit` now restores the drafted fields instead of closing and appearing to clear entries.
+
+Status:
+- Local UAT passed in the in-app browser via DOM/interaction checks. Verified v39 Codex identity, centered new-trip modal, setup/invited member flow, `Start trip`, restored expense review draft, confirmed expense add, dashboard, expense list, and Settle mode toggle. Browser screenshot capture timed out after the DOM checks, so visual evidence is DOM-based for local UAT. Live deployment verification pending.
