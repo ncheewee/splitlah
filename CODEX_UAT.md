@@ -783,4 +783,5 @@ Fixes:
 - C31-X7: Expense review `Back to edit` now restores the drafted fields instead of closing and appearing to clear entries.
 
 Status:
-- Local UAT passed in the in-app browser via DOM/interaction checks. Verified v39 Codex identity, centered new-trip modal, setup/invited member flow, `Start trip`, restored expense review draft, confirmed expense add, dashboard, expense list, and Settle mode toggle. Browser screenshot capture timed out after the DOM checks, so visual evidence is DOM-based for local UAT. Live deployment verification pending.
+- Completed. Local UAT passed in the in-app browser via DOM/interaction checks. Verified v39 Codex identity, centered new-trip modal, setup/invited member flow, `Start trip`, restored expense review draft, confirmed expense add, dashboard, expense list, and Settle mode toggle. Browser screenshot capture timed out after the DOM checks, so visual evidence is DOM-based for local UAT.
+- GitHub Pages source was switched from `claude/redesign-mvp` to `codex/redesign-mvp` with explicit user approval. Live Pages verification passed: public HTML served `SPLITLAH - Codex build (v39)`, service worker served `splitlah-shell-v39`, and the in-app browser loaded the live site without console errors.
