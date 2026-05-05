@@ -757,4 +757,6 @@ Fixes:
 - C43-X5: Removed the local `pendingEditReceiptUrl` shadow and included edit receipt changes in dirty-form detection.
 
 Status:
-- Local UAT passed. Static syntax, manifest JSON, whitespace, generated icon dimensions, and `index.html` / `Built By Codex/index.html` sync checks passed. In-app browser loaded local v43 with `SPLITLAH v43`, `NEW TRIP`, and `BETA FEEDBACK` visible and no console errors. Live Pages verification pending.
+- Completed. Static syntax, manifest JSON, whitespace, generated icon dimensions, and `index.html` / `Built By Codex/index.html` sync checks passed.
+- Local in-app browser UAT loaded v43 with `SPLITLAH v43`, `NEW TRIP`, and `BETA FEEDBACK` visible and no console errors.
+- Live Pages verification passed after switching Pages source back to `codex/redesign-mvp`: public HTML served `APP_VERSION=43`, service worker served `splitlah-shell-v43`, manifest exposed the regenerated PNG icons plus `icon.svg`, and the in-app browser loaded live v43 without console errors.
