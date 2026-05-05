@@ -1,7 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#085041"/>
-  <text x="256" y="304" font-family="system-ui,-apple-system,sans-serif" font-size="220" font-weight="700" fill="#ffffff" text-anchor="middle">SL</text>
-  <circle cx="370" cy="168" r="48" fill="#1D9E75"/>
-  <circle cx="142" cy="344" r="48" fill="#1D9E75"/>
-  <line x1="142" y1="344" x2="370" y2="168" stroke="#dff2ea" stroke-width="18" stroke-linecap="round"/>
+  <!-- Dark green circle background -->
+  <circle cx="256" cy="256" r="256" fill="#063a2c"/>
+  <!-- Segment 1: 0°–120° (top → lower-right), dark green -->
+  <path d="M256,256 L256,71 A185,185 0 0,1 416.21,348.5 Z" fill="#0d5c42"/>
+  <!-- Segment 2: 120°–190° (lower-right → lower-left), mid-green -->
+  <path d="M256,256 L416.21,348.5 A185,185 0 0,1 223.88,438.19 Z" fill="#1d9e75"/>
+  <!-- Segment 3: 190°–265° (lower-left → left), lighter green -->
+  <path d="M256,256 L223.88,438.19 A185,185 0 0,1 71.7,272.12 Z" fill="#4dc89a"/>
+  <!-- Segment 4: 265°–360° (left → top), bright mint -->
+  <path d="M256,256 L71.7,272.12 A185,185 0 1,1 256,71 Z" fill="#a8edd4"/>
+  <!-- Divider lines -->
+  <line x1="256" y1="256" x2="256" y2="71" stroke="#063a2c" stroke-width="6"/>
+  <line x1="256" y1="256" x2="416.21" y2="348.5" stroke="#063a2c" stroke-width="6"/>
+  <line x1="256" y1="256" x2="223.88" y2="438.19" stroke="#063a2c" stroke-width="6"/>
+  <line x1="256" y1="256" x2="71.7" y2="272.12" stroke="#063a2c" stroke-width="6"/>
 </svg>
