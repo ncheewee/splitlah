@@ -740,48 +740,21 @@ Fixes:
 Status:
 - Completed. Local UAT passed in the in-app browser: verified v29 home and trip screens, top BACK/SHARE chips, separated FEEDBACK and ADD EXPENSE chips, owner member edit modal, callout payer donut, and Settle tab without net-balance duplication. Cycle 29 committed and pushed. Public Pages smoke verified v29 HTML markers and service worker `splitlah-shell-v29`.
 
-## Cycle 30
+## Cycle 43
 Focus:
-- Improve the core expense and member workflows using v29 beta feedback, while leaving larger chart/category and trip-lifecycle changes for design discussion.
+- Clone Claude v42 into the Codex branch and apply the latest admin feedback on top.
 
 Findings:
-- C30-F1: v29 feedback said the add-expense flow worked but needed clearer guidance, with distinct description/receipt, amount/currency, and split sections.
-- C30-F2: Expense rows were visually inconsistent when some rows had receipt thumbnails and others had payer avatars.
-- C30-F3: Expenses needed editable dates plus simple sorting/filtering for date, payer, and highest spend.
-- C30-F4: Members list over-explained generic membership and used a second line for paid amounts.
-- C30-F5: Top trip actions needed clearer full-cap labels, and the trip edit chip still looked slightly too tall.
+- C43-F1: Latest v42 feedback said the new pie-chart app icon still was not showing for the installed app. The SVG icon existed, but `manifest.webmanifest` still pointed PWA installs at the old PNG icons and the service worker did not cache `icon.svg`.
+- C43-F2: Latest v42 feedback said the Sankey center total label needed equal black space above and below the text.
+- C43-F3: Recent feedback also called out edit-expense receipt removal. Claude v42 had the remove marker, but the add-expense sheet still shadowed `pendingEditReceiptUrl` and dirty-form protection ignored edit receipt changes.
 
 Fixes:
-- C30-X1: Rebuilt add/edit expense sheets into three numbered sections and added an editable expense date defaulting to today.
-- C30-X2: Expense list rows now use a stable media column with receipt/placeholder plus a mini payer avatar, simplified subtitle to date, and expose sort/filter controls.
-- C30-X3: Expense detail/review surfaces now show the selected date.
-- C30-X4: Members list now shows only meaningful badges (`Me`, `Owner`, `PayNow set`) and keeps paid amount on one line.
-- C30-X5: Trip header is sticky, top actions now read `BACK TO TRIPS` and `SHARE THIS TRIP`, and the `EDIT` chip height was reduced.
-- C30-X6: Bumped app and service-worker cache version to v30.
+- C43-X1: Rebased the Codex branch app files onto Claude v42.
+- C43-X2: Bumped the frontend to v43 and the service-worker cache to `splitlah-shell-v43`.
+- C43-X3: Regenerated the PNG app icons from the new pie-chart SVG, and updated `manifest.webmanifest` plus the service worker to use/cache the new icon set for installed app icons.
+- C43-X4: Rebalanced the Sankey total box dimensions and label positions.
+- C43-X5: Removed the local `pendingEditReceiptUrl` shadow and included edit receipt changes in dirty-form detection.
 
 Status:
-- Completed. Local UAT passed in the in-app browser via DOM/interaction checks. Verified v30 home/trip headers, expense sort/filter controls, aligned expense rows with dates, three-part add expense flow, review screen with date and split preview, and cleaned member badges/paid amounts. In-app screenshot capture timed out, but browser interaction and DOM verification succeeded. Cycle 30 committed, pushed, and public Pages smoke verified v30 HTML markers plus service worker `splitlah-shell-v30`.
-
-## Cycle 31
-Focus:
-- Consolidate Claude v38 work back into the Codex branch, then address latest beta feedback in one high-care pass.
-
-Findings:
-- C31-F1: Latest feedback added one new empty-state issue: the home screen should not mention joining by trip code.
-- C31-F2: Pre-added members who clicked `This is me` were not writing their joined state back to the shared trip, so owners could remain stale after invite acceptance.
-- C31-F3: Edit-mode receipt capture attached to the new-expense receipt variable, so the row could fail to show the edited receipt after saving.
-- C31-F4: Date sorting compared only the calendar date, so same-day expenses did not sort latest/earliest correctly.
-- C31-F5: The imported v38 trip header could still scroll away and the setup flow still did not clearly guide owners to add members before starting.
-
-Fixes:
-- C31-X1: Restored Codex identity and bumped app/service-worker cache version to v39.
-- C31-X2: Added trip setup state for newly created trips, owner setup card, invited/joined member badges, and a `Start trip` action before expense entry.
-- C31-X3: Claiming a pre-added member now marks that member as joined and pushes the shared trip update immediately.
-- C31-X4: Fixed edit receipt persistence, removed the useless `Saved locally` wording, and separated receipt thumbnails from avatars.
-- C31-X5: Same-day date sorting now uses expense timestamps; new expenses keep current time and edited expenses preserve their original time.
-- C31-X6: Added sticky compact trip header behavior, centered/fat-finger new trip/profile modals, upward trip-currency dropdown, larger Sankey labels, and a settle-mode toggle between least transfers and payer-based reimbursements.
-- C31-X7: Expense review `Back to edit` now restores the drafted fields instead of closing and appearing to clear entries.
-
-Status:
-- Completed. Local UAT passed in the in-app browser via DOM/interaction checks. Verified v39 Codex identity, centered new-trip modal, setup/invited member flow, `Start trip`, restored expense review draft, confirmed expense add, dashboard, expense list, and Settle mode toggle. Browser screenshot capture timed out after the DOM checks, so visual evidence is DOM-based for local UAT.
-- GitHub Pages source was switched from `claude/redesign-mvp` to `codex/redesign-mvp` with explicit user approval. Live Pages verification passed: public HTML served `SPLITLAH - Codex build (v39)`, service worker served `splitlah-shell-v39`, and the in-app browser loaded the live site without console errors.
+- Local UAT passed. Static syntax, manifest JSON, whitespace, generated icon dimensions, and `index.html` / `Built By Codex/index.html` sync checks passed. In-app browser loaded local v43 with `SPLITLAH v43`, `NEW TRIP`, and `BETA FEEDBACK` visible and no console errors. Live Pages verification pending.

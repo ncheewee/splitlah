@@ -1,9 +1,9 @@
-const CACHE_NAME = 'splitlah-shell-v39';
+const CACHE_NAME = 'splitlah-shell-v43';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './manifest.json',
+  './icon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png'
