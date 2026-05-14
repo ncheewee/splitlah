@@ -1,17 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Dark green circle background -->
-  <circle cx="256" cy="256" r="256" fill="#063a2c"/>
-  <!-- Segment 1: 0°–120° (top → lower-right), dark green -->
-  <path d="M256,256 L256,71 A185,185 0 0,1 416.21,348.5 Z" fill="#0d5c42"/>
-  <!-- Segment 2: 120°–190° (lower-right → lower-left), mid-green -->
-  <path d="M256,256 L416.21,348.5 A185,185 0 0,1 223.88,438.19 Z" fill="#1d9e75"/>
-  <!-- Segment 3: 190°–265° (lower-left → left), lighter green -->
-  <path d="M256,256 L223.88,438.19 A185,185 0 0,1 71.7,272.12 Z" fill="#4dc89a"/>
-  <!-- Segment 4: 265°–360° (left → top), bright mint -->
-  <path d="M256,256 L71.7,272.12 A185,185 0 1,1 256,71 Z" fill="#a8edd4"/>
-  <!-- Divider lines -->
-  <line x1="256" y1="256" x2="256" y2="71" stroke="#063a2c" stroke-width="6"/>
-  <line x1="256" y1="256" x2="416.21" y2="348.5" stroke="#063a2c" stroke-width="6"/>
-  <line x1="256" y1="256" x2="223.88" y2="438.19" stroke="#063a2c" stroke-width="6"/>
-  <line x1="256" y1="256" x2="71.7" y2="272.12" stroke="#063a2c" stroke-width="6"/>
+  <defs>
+    <linearGradient id="main" x1="110" x2="390" y1="360" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f6f55"/>
+      <stop offset="1" stop-color="#1b9a73"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="260" x2="430" y1="245" y2="95" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8bffd1"/>
+      <stop offset="1" stop-color="#25e88e"/>
+    </linearGradient>
+    <linearGradient id="lime" x1="285" x2="445" y1="260" y2="260" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#b8ff2f"/>
+      <stop offset="1" stop-color="#80f000"/>
+    </linearGradient>
+    <linearGradient id="pale" x1="285" x2="405" y1="330" y2="440" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#d9ffd7"/>
+      <stop offset="1" stop-color="#9bf0b4"/>
+    </linearGradient>
+  </defs>
+  <path d="M265 80a176 176 0 1 0 2 352l-54-176 54-176z" fill="url(#main)"/>
+  <path d="M310 82a176 176 0 0 1 124 98l-147 60 23-158z" fill="url(#mint)"/>
+  <path d="M288 262l158-66a176 176 0 0 1 0 121l-158-55z" fill="url(#lime)"/>
+  <path d="M287 285l147 56a176 176 0 0 1-104 92l-43-148z" fill="url(#pale)"/>
 </svg>

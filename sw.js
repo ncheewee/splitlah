@@ -1,12 +1,13 @@
-const CACHE_NAME = 'splitlah-shell-v47';
+const CACHE_NAME = 'splitlah-shell-v48';
 const SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icon.png?v=47',
-  './icons/icon-192.png?v=47',
-  './icons/icon-512.png?v=47',
-  './icons/apple-touch-icon.png?v=47'
+  './icon.svg?v=48',
+  './icon.png?v=48',
+  './icons/icon-192.png?v=48',
+  './icons/icon-512.png?v=48',
+  './icons/apple-touch-icon.png?v=48'
 ];
 
 self.addEventListener('install', event => {
