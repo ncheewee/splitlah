@@ -217,24 +217,32 @@ export default {
 
       if (url.pathname === '/restore' && request.method === 'POST') {
         const payload = await request.json().catch(() => ({}));
-        const tripCode = cleanText(payload.tripCode, 6).toUpperCase();
-        const memberId = cleanText(payload.memberId, 80);
         const uid = cleanText(payload.uid, 80);
         const name = cleanText(payload.name, 80);
         const paynowProxy = cleanText(payload.paynowProxy, 40);
-        if (!tripCode || !memberId || !uid) return json({ error: 'tripCode, memberId and uid are required' }, 400);
-        const tripRows = await sql`select data from trips where code = ${tripCode}`;
-        if (!tripRows.length) return json({ error: 'Trip not found' }, 404);
-        const trip = tripRows[0].data;
-        if (trip.deletedAt) return json({ error: 'Trip was deleted' }, 404);
-        if (!trip.members || !trip.members[memberId]) return json({ error: 'Member not found in trip' }, 404);
+        const rawClaims = (payload.claims && typeof payload.claims === 'object') ? payload.claims : {};
+        if (!uid) return json({ error: 'uid is required' }, 400);
+        const entries = Object.entries(rawClaims).slice(0, 200);
+        const validClaims = {};
+        for (const [rawCode, rawMemberId] of entries) {
+          const tripCode = cleanText(rawCode, 6).toUpperCase();
+          const memberId = cleanText(rawMemberId, 80);
+          if (!tripCode || !memberId) continue;
+          const tripRows = await sql`select data from trips where code = ${tripCode}`;
+          if (!tripRows.length) continue;
+          const trip = tripRows[0].data;
+          if (trip.deletedAt) continue;
+          if (!trip.members || !trip.members[memberId]) continue;
+          validClaims[tripCode] = memberId;
+        }
+        if (!Object.keys(validClaims).length) return json({ error: 'No trips to restore' }, 400);
         const token = genRestoreToken(10);
         const tokenHash = await hashRestoreToken(token);
         const store = purgeRestoreTokens(await loadRestore(sql));
         const now = Date.now();
-        store.tokens[tokenHash] = { tripCode, memberId, uid, name, paynowProxy, createdAt: now, expiresAt: now + RESTORE_TTL_MS, used: false };
+        store.tokens[tokenHash] = { uid, name, paynowProxy, claims: validClaims, createdAt: now, expiresAt: now + RESTORE_TTL_MS, used: false };
         await saveRestore(sql, store);
-        return json({ ok: true, token, expiresAt: store.tokens[tokenHash].expiresAt });
+        return json({ ok: true, token, expiresAt: store.tokens[tokenHash].expiresAt, tripCount: Object.keys(validClaims).length });
       }
 
       if (url.pathname.startsWith('/restore/') && request.method === 'GET') {
@@ -254,7 +262,7 @@ export default {
         rec.used = true;
         rec.usedAt = Date.now();
         await saveRestore(sql, store);
-        return json({ ok: true, tripCode: rec.tripCode, memberId: rec.memberId, uid: rec.uid, name: rec.name, paynowProxy: rec.paynowProxy });
+        return json({ ok: true, uid: rec.uid, name: rec.name, paynowProxy: rec.paynowProxy, claims: rec.claims || {} });
       }
 
       const code = codeFromPath(url.pathname);
