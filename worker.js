@@ -1,3 +1,4 @@
+// build-test: auto-build verification commit (safe to ignore/remove) — 2026-06-07T14:33:08Z
 import { neon } from '@neondatabase/serverless';
 
 const cors = {
