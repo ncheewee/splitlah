@@ -8,6 +8,63 @@ const cors = {
 };
 
 const FEEDBACK_CODE = 'FDBACK';
+const RESTORE_CODE = 'RSTORE';
+const RESTORE_TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const RESTORE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const RESTORE_PURGE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+
+function genRestoreToken(len = 10) {
+  const bytes = crypto.getRandomValues(new Uint8Array(len));
+  return Array.from(bytes, b => RESTORE_TOKEN_CHARS[b % RESTORE_TOKEN_CHARS.length]).join('');
+}
+
+async function hashRestoreToken(token) {
+  const data = new TextEncoder().encode('splitlah-restore:' + token);
+  const digest = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+function restoreStore() {
+  return {
+    code: RESTORE_CODE,
+    name: 'SplitLah Restore Tokens',
+    currency: 'SGD',
+    ownerId: 'system',
+    members: {},
+    expenses: [],
+    settlements: [],
+    tokens: {},
+    updated_at: new Date().toISOString()
+  };
+}
+
+async function loadRestore(sql) {
+  const rows = await sql`select data from trips where code = ${RESTORE_CODE}`;
+  const store = rows.length ? rows[0].data : restoreStore();
+  store.tokens = (store.tokens && typeof store.tokens === 'object') ? store.tokens : {};
+  return store;
+}
+
+async function saveRestore(sql, store) {
+  store.updated_at = new Date().toISOString();
+  const body = JSON.stringify(store);
+  await sql`
+    insert into trips (code, data, updated_at)
+    values (${RESTORE_CODE}, ${body}::jsonb, now())
+    on conflict (code) do update set data = excluded.data, updated_at = now()
+  `;
+}
+
+function purgeRestoreTokens(store) {
+  const now = Date.now();
+  const kept = {};
+  for (const [hash, rec] of Object.entries(store.tokens)) {
+    const expiresAt = +rec.expiresAt || 0;
+    if (expiresAt > now - RESTORE_PURGE_AFTER_MS) kept[hash] = rec;
+  }
+  store.tokens = kept;
+  return store;
+}
 
 function json(body, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: cors });
@@ -155,6 +212,48 @@ export default {
           },
           trips: summaries
         });
+      }
+
+      if (url.pathname === '/restore' && request.method === 'POST') {
+        const payload = await request.json().catch(() => ({}));
+        const tripCode = cleanText(payload.tripCode, 6).toUpperCase();
+        const memberId = cleanText(payload.memberId, 80);
+        const uid = cleanText(payload.uid, 80);
+        const name = cleanText(payload.name, 80);
+        const paynowProxy = cleanText(payload.paynowProxy, 40);
+        if (!tripCode || !memberId || !uid) return json({ error: 'tripCode, memberId and uid are required' }, 400);
+        const tripRows = await sql`select data from trips where code = ${tripCode}`;
+        if (!tripRows.length) return json({ error: 'Trip not found' }, 404);
+        const trip = tripRows[0].data;
+        if (trip.deletedAt) return json({ error: 'Trip was deleted' }, 404);
+        if (!trip.members || !trip.members[memberId]) return json({ error: 'Member not found in trip' }, 404);
+        const token = genRestoreToken(10);
+        const tokenHash = await hashRestoreToken(token);
+        const store = purgeRestoreTokens(await loadRestore(sql));
+        const now = Date.now();
+        store.tokens[tokenHash] = { tripCode, memberId, uid, name, paynowProxy, createdAt: now, expiresAt: now + RESTORE_TTL_MS, used: false };
+        await saveRestore(sql, store);
+        return json({ ok: true, token, expiresAt: store.tokens[tokenHash].expiresAt });
+      }
+
+      if (url.pathname.startsWith('/restore/') && request.method === 'GET') {
+        const rawToken = decodeURIComponent(url.pathname.slice('/restore/'.length));
+        const token = cleanText(rawToken, 40).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        if (!token) return json({ error: 'Restore code required' }, 400);
+        const tokenHash = await hashRestoreToken(token);
+        const store = await loadRestore(sql);
+        const rec = store.tokens[tokenHash];
+        if (!rec) return json({ error: 'Restore code not found or already used' }, 404);
+        if (rec.used) return json({ error: 'Restore code already used' }, 410);
+        if ((+rec.expiresAt || 0) < Date.now()) {
+          delete store.tokens[tokenHash];
+          await saveRestore(sql, store);
+          return json({ error: 'Restore code expired' }, 410);
+        }
+        rec.used = true;
+        rec.usedAt = Date.now();
+        await saveRestore(sql, store);
+        return json({ ok: true, tripCode: rec.tripCode, memberId: rec.memberId, uid: rec.uid, name: rec.name, paynowProxy: rec.paynowProxy });
       }
 
       const code = codeFromPath(url.pathname);
