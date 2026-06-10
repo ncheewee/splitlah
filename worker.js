@@ -1,4 +1,3 @@
-// build-test: auto-build verification commit (safe to ignore/remove) — 2026-06-07T14:33:08Z
 import { neon } from '@neondatabase/serverless';
 
 const cors = {
@@ -10,11 +9,11 @@ const cors = {
 
 const FEEDBACK_CODE = 'FDBACK';
 const RESTORE_CODE = 'RSTORE';
-const RESTORE_TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-const RESTORE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const RESTORE_PURGE_AFTER_MS = 30 * 24 * 60 * 60 * 1000;
+const RESTORE_TOKEN_CHARS = '0123456789';
+const RESTORE_TTL_MS = 5 * 60 * 1000;
+const RESTORE_PURGE_AFTER_MS = 24 * 60 * 60 * 1000;
 
-function genRestoreToken(len = 10) {
+function genRestoreToken(len = 6) {
   const bytes = crypto.getRandomValues(new Uint8Array(len));
   return Array.from(bytes, b => RESTORE_TOKEN_CHARS[b % RESTORE_TOKEN_CHARS.length]).join('');
 }
@@ -236,7 +235,7 @@ export default {
           validClaims[tripCode] = memberId;
         }
         if (!Object.keys(validClaims).length) return json({ error: 'No trips to restore' }, 400);
-        const token = genRestoreToken(10);
+        const token = genRestoreToken();
         const tokenHash = await hashRestoreToken(token);
         const store = purgeRestoreTokens(await loadRestore(sql));
         const now = Date.now();
@@ -247,7 +246,7 @@ export default {
 
       if (url.pathname.startsWith('/restore/') && request.method === 'GET') {
         const rawToken = decodeURIComponent(url.pathname.slice('/restore/'.length));
-        const token = cleanText(rawToken, 40).toUpperCase().replace(/[^A-Z0-9]/g, '');
+        const token = cleanText(rawToken, 6).replace(/[^0-9]/g, '');
         if (!token) return json({ error: 'Restore code required' }, 400);
         const tokenHash = await hashRestoreToken(token);
         const store = await loadRestore(sql);
