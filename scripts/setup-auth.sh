@@ -17,6 +17,53 @@ say() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 say "SplitLah v62 auth setup"
 echo "Repo: $(pwd)"
 
+# --------------------------------------------------------------- preflight
+# node_modules can carry binaries built for another platform (workerd is native
+# code). Catch that BEFORE generating any secret, so a failure leaves no
+# half-finished state.
+say "0/3 · Checking tools"
+for c in node npx openssl; do
+  command -v "$c" >/dev/null 2>&1 || { echo "Missing required command: $c"; exit 1; }
+done
+echo "node $(node -v)"
+
+wrangler_ok() { npx --no-install wrangler --version >/dev/null 2>&1; }
+
+if wrangler_ok; then
+  echo "wrangler $(npx --no-install wrangler --version 2>/dev/null | head -1)"
+else
+  echo
+  echo "The local wrangler cannot start — usually node_modules was installed on"
+  echo "a different platform, so the native workerd binary does not match this Mac."
+  read -r -p "Reinstall node_modules now? (a few minutes) [Y/n] " fix
+  if [[ "${fix:-Y}" =~ ^[Yy]$|^$ ]]; then
+    rm -rf node_modules
+    npm install
+    if wrangler_ok; then
+      echo "Repaired: wrangler $(npx --no-install wrangler --version 2>/dev/null | head -1)"
+    else
+      cat <<'ALT'
+
+wrangler still will not start. Nothing has been changed. Two ways forward:
+
+  a) Set the secret in the Cloudflare dashboard instead:
+     Workers & Pages -> splitlah-api -> Settings -> Variables and Secrets
+     Add secret  SESSION_SECRET  with a long random value, e.g. from:
+         openssl rand -base64 48
+     Then deploy by pasting worker.js into the dashboard editor.
+
+  b) Run the DB migration on its own, which needs no wrangler:
+         node scripts/setup-auth.mjs
+
+ALT
+      exit 1
+    fi
+  else
+    echo "Skipping. Run 'node scripts/setup-auth.mjs' for the DB step only."
+    exit 1
+  fi
+fi
+
 # ---------------------------------------------------------------- 1. secret
 say "1/3 · Worker session secret"
 if npx wrangler secret list 2>/dev/null | grep -q SESSION_SECRET; then
