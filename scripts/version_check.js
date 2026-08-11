@@ -36,6 +36,8 @@ const running=(html.match(/APP_VERSION\s*=\s*(\d+)/)||[])[1];
   const h=w.document.getElementById('modal').innerHTML;
   ok('Edit profile shows the version',new RegExp('v'+running+'</b>').test(h));
   ok('Edit profile has a Check for update button',/checkForUpdate\(\)/.test(h));
+  ok('Edit profile has a tappable Auth probe button',/openAuthProbe\(\)/.test(h)&&/<button[^>]*openAuthProbe/.test(h));
+  ok('no multi-tap gesture left on the version text',!/tapVersion/.test(h));
 }
 { // up to date
   const {ev,toastText}=env(html,{});await sleep(120);
