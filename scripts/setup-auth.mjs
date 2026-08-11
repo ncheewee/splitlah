@@ -3,16 +3,36 @@
 import process from 'node:process';
 import { neon } from '@neondatabase/serverless';
 
-let url = process.env.DATABASE_URL || '';
-if (!url) {
-  url = await new Promise((resolve) => {
+/* Reading DATABASE_URL from stdin with no prompt looks like a hang. Ask for it
+   properly when there is a terminal, with the input masked. */
+async function promptHidden(label) {
+  const readline = await import('node:readline');
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout, terminal: true });
+    rl.stdoutMuted = false;
+    rl._writeToOutput = function (s) { if (rl.stdoutMuted) return; rl.output.write(s); };
+    rl.question(label, (answer) => { rl.close(); process.stdout.write('\n'); resolve(String(answer).trim()); });
+    rl.stdoutMuted = true;
+  });
+}
+
+async function getDatabaseUrl() {
+  if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
+  if (process.stdin.isTTY) {
+    console.log('Neon pooled connection string needed (input hidden).');
+    console.log('Neon console -> project -> Connect -> enable Connection pooling.');
+    return promptHidden('DATABASE_URL: ');
+  }
+  return new Promise((resolve) => {
     let s = '';
     process.stdin.setEncoding('utf8');
     process.stdin.on('data', (c) => { s += c; });
     process.stdin.on('end', () => resolve(s.trim()));
   });
 }
-if (!url) throw new Error('DATABASE_URL required on stdin or env');
+
+const url = await getDatabaseUrl();
+if (!url) throw new Error('DATABASE_URL required');
 const sql = neon(url);
 
 /* Statements are listed explicitly rather than parsed out of neon.sql — that
