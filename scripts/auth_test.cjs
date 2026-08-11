@@ -64,6 +64,7 @@ function makeEnv(opts = {}) {
         }
         return jr({ error: 'Not found' }, 404);
       };
+      if (opts.offline) Object.defineProperty(w.navigator, 'onLine', { configurable: true, value: false });
       w.matchMedia = () => ({ matches: false, addListener() {}, removeListener() {} });
       w.scrollTo = () => {}; w.Chart = function () { return { destroy() {} }; };
     }
@@ -319,6 +320,68 @@ function makeEnvLastServerHas() { return true; }
     await sleep(300);
     ok('error shown to the user', /access_denied/.test(w.document.getElementById('toast').textContent));
     ok('no session created', !st().auth);
+  }
+}
+
+/* 14. SSO-only onboarding for new users (config-gated). */
+{
+  console.log('\n[14] Google-only onboarding');
+
+  // flag OFF: unchanged first-run behaviour
+  {
+    const { w, ev } = makeEnv({ config: { ssoOnboarding: false } });
+    await sleep(250);
+    ok('name-only start still available when flag is off', ev('ssoRequired()') === false);
+    ev('openOnboarding()'); await sleep(150);
+    ok('falls back to the profile form', /setName/.test(w.document.getElementById('modal').innerHTML));
+  }
+
+  // flag ON: no name field, no PayNow field, no dismiss
+  {
+    const { w, ev } = makeEnv({ config: { ssoOnboarding: true } });
+    await sleep(250);
+    ev('openOnboarding()'); await sleep(200);
+    const h = w.document.getElementById('modal').innerHTML;
+    ok('no name field on first run', !/id=.setName./.test(h));
+    ok('no PayNow field on first run', !/id=.setPayNow./.test(h));
+    ok('offers Google sign-in', /gsiBtn/.test(h));
+    ok('cannot be dismissed', w.document.querySelector('#modal .close').style.display === 'none');
+  }
+
+  // offline is explained rather than silently broken
+  {
+    const { w, ev } = makeEnv({ config: { ssoOnboarding: true }, offline: true });
+    await sleep(250);
+    ev('openOnboarding()'); await sleep(200);
+    ok('offline is explained', /offline/i.test(w.document.getElementById('modal').innerHTML));
+  }
+
+  // invite arrivals must sign in first, and the invite resumes afterwards
+  {
+    const server = { OYL1X3: { code:'OYL1X3', name:'JB Shenanigans', currency:'SGD', ownerId:'u_friend',
+      members:{ u_friend:{name:'Friend'}, u_slot:{name:'Guest'} }, expenses:[], settlements:[] } };
+    const { w, ev, st } = makeEnv({ server, accounts:{ sub_1:{ uids:[], claims:{} } },
+      config: { ssoOnboarding: true } });
+    await sleep(250);
+    ev('openInvite("OYL1X3")'); await sleep(250);
+    ok('invitee is asked to sign in first', /gsiBtn/.test(w.document.getElementById('modal').innerHTML));
+    ok('the invite is remembered', st().pendingInvite && st().pendingInvite.code === 'OYL1X3');
+    await ev('completeSignIn("GOOD")'); await sleep(500);
+    ok('join flow resumes after sign-in', /JB Shenanigans/.test(w.document.getElementById('modal').innerHTML),
+       w.document.getElementById('modal').innerHTML.slice(0, 80));
+  }
+
+  // after sign-up with no PayNow, the optional step appears and can be skipped
+  {
+    const { w, ev, st } = makeEnv({ accounts:{ sub_1:{ uids:[], claims:{} } }, config:{ ssoOnboarding:true } });
+    await sleep(250);
+    ev('openOnboarding()'); await sleep(150);
+    await ev('completeSignIn("GOOD")'); await sleep(500);
+    const h = w.document.getElementById('modal').innerHTML;
+    ok('optional PayNow step offered', /obPayNow/.test(h), h.slice(0, 80));
+    ok('it is skippable', /Skip for now/.test(h));
+    ev('state.paynowProxy="";closeModal()');
+    ok('onboarded regardless', st().onboarded === true);
   }
 }
 

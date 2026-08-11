@@ -56,7 +56,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){const th=localStorage.getItem('sl_theme');const fs=localStorage.getItem('sl_fs');if(th==='light')document.body.classList.add('light');if(fs)document.documentElement.style.setProperty('--fs',fs+'px')})();
-const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=63;
+const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=64;
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.vTag').forEach(el=>el.textContent='v'+APP_VERSION)});
 const CATS=['🍜 Food','🏨 Stay','🚌 Transport','🎡 Activities','🛍 Shopping','🌃 Nightlife','💊 Health','★ Other'];
 let dashChart='flow',expCat=7;
@@ -168,7 +168,9 @@ function createTrip(){let name=$('ntName').value.trim();if(!name)return toast('T
 function promptAddFirstMember(){if(!cur||!isOwner()||memberList().length>1)return;modal('<div style="text-align:center;padding:8px 0"><div style="font-size:2rem;margin-bottom:10px">👥</div><h2 style="margin:0 0 8px">Add your travel mates</h2><p style="color:var(--muted);margin:0 0 16px;font-size:.9rem">Add everyone splitting expenses on this trip. You can find the add form in the Members tab below.</p><button class="btn" style="width:100%;margin-bottom:8px" onclick="closeModal()">Got it, let\'s add them</button></div>',true);}
 function openJoin(prefill=''){modal(`<h2>Join code</h2><input class="field" id="joinCode" placeholder="ABC123" maxlength="6" value="${esc(prefill)}"><div style="height:10px"></div><button class="btn" style="width:100%" onclick="joinTrip()">Join</button>`)}
 async function joinTrip(){let c=$('joinCode').value.trim().toUpperCase();if(!c)return;openInvite(c)}
-async function openInvite(c,mid=''){let code=String(c||'').toUpperCase();if(!code)return;state.pendingInvite={code,memberId:mid||'',at:Date.now()};save();try{let t=await pull(code);if(t.members[me(t)]){state.pendingInvite=null;save();closeModal();openTrip(t.code);return}pendingJoin=t;showJoinChoice(t,mid)}catch(e){if(e.tombstone||e.status===404){state.pendingInvite=null;save()}toast(e.offline?'No connection — try again when back online':e.message)}}
+async function openInvite(c,mid=''){let code=String(c||'').toUpperCase();if(!code)return;state.pendingInvite={code,memberId:mid||'',at:Date.now()};save();
+  if(ssoRequired()&&!signedIn())return openOnboarding('Sign in to join this trip.');
+  try{let t=await pull(code);if(t.members[me(t)]){state.pendingInvite=null;save();closeModal();openTrip(t.code);return}pendingJoin=t;showJoinChoice(t,mid)}catch(e){if(e.tombstone||e.status===404){state.pendingInvite=null;save()}toast(e.offline?'No connection — try again when back online':e.message)}}
 function showJoinChoice(t,mid=''){let suggested=mid&&t.members[mid]?`<div class="card"><div class="k">Suggested</div><div class="expense row">${avFrom(t.members[mid])}<div class="grow"><b>${esc(t.members[mid].name)}</b><div class="muted">Pre-selected from invite link</div></div><button class="btn" onclick="claimJoin('${esc(mid)}')">Continue</button></div></div>`:'',rows=memberList(t).map(([id,m])=>`<div class="expense row">${avFrom(m)}<div class="grow"><b>${esc(m.name)}</b><div class="muted">${m.paynowProxy?'PayNow set':'Member'}</div></div><button class="btn ghost" onclick="claimJoin('${esc(id)}')">This is me</button></div>`).join('');modal(`<h2>${esc(t.name)}</h2><p class="muted">Who are you? Pick yourself if you are already listed, or join as a new member.</p><div class="card"><div class="muted">Started by ${esc(ownerName(t))} · ${memberList(t).length} members</div></div>${suggested}<div class="card">${rows}</div><button class="btn" style="width:100%" onclick="joinAsNew()">I'm not listed</button>`)}
 function avFrom(m){return `<div class="av" style="background:${m.avatarColor||colors[0]}">${esc(initials(m.name))}</div>`}
 function claimJoin(id){if(!pendingJoin||!pendingJoin.members[id])return;let m=pendingJoin.members[id],code=pendingJoin.code;state.claims[code]=id;state.trips[code]=normalizeTrip(pendingJoin);state.pendingInvite=null;if(!state.name||state.name==='there'||state.name!==m.name)state.name=m.name||state.name;if(!state.paynowProxy&&m.paynowProxy)state.paynowProxy=m.paynowProxy;state.onboarded=true;save();closeModal();openTrip(code);setTimeout(()=>{if(!normalizePayNowProxy(m.paynowProxy||state.paynowProxy))openSettings(false)},250);setTimeout(()=>offerInstallRestore(code,id),900);toast('Joined as '+m.name)}
@@ -187,22 +189,54 @@ async function refreshConfig(){
   catch(e){return state.config||null}}
 function loadGis(){return new Promise((res,rej)=>{
   if(window.google&&google.accounts&&google.accounts.id)return res();
+  let done=false,fin=(ok,err)=>{if(done)return;done=true;ok?res():rej(err)};
+  /* If the script is blocked outright it may neither load nor error, so cap the
+     wait rather than leaving the user on a spinner forever. */
+  setTimeout(()=>fin(false,Error('Google sign-in did not load')),8000);
   let s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.async=true;s.defer=true;
-  s.onload=()=>res();s.onerror=()=>rej(Error('Google sign-in is unavailable'));document.head.appendChild(s)})}
-async function openSignIn(reason){
+  s.onload=()=>fin(true);s.onerror=()=>fin(false,Error('Google sign-in is unavailable'));
+  document.head.appendChild(s)})}
+function ssoRequired(){return !!authCfg().ssoOnboarding}
+let onboardingFlow=false;
+/* Shared by the sign-in modal and first-run onboarding. The Google button needs
+   third-party cookies to deliver its credential; where those are blocked the
+   chooser appears and then nothing happens, so the redirect fallback is offered
+   after a few seconds or immediately if the script cannot load. */
+async function mountGoogleButton(){
   let c=authCfg();
-  if(!c.clientId){c=await refreshConfig()||{};}
-  if(!c.clientId)return toast('Sign-in is not configured yet');
-  modal(`<h2>Sign in</h2><p class="muted">${esc(reason||'Sign in with Google so your trips can be restored on any device.')}</p><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><div id="gsiAlt"></div><p class="muted" style="font-size:.75rem">SplitLah stores your Google account ID and email to link your trips. Nothing is posted to your account.</p><button class="btn ghost" style="width:100%" onclick="closeModal()">Not now</button>`,true);
-  /* The Google button needs third-party cookies to deliver its credential. Where
-     those are blocked (incognito, strict privacy settings) the account chooser
-     appears and then nothing happens at all — so offer the redirect flow, which
-     needs no cookies, rather than leaving a dead end. */
+  if(!c.clientId)c=await refreshConfig()||{};
+  if(!c.clientId){let el=$('gsiBtn');if(el)el.innerHTML='<div class="muted">Sign-in is not configured yet</div>';return}
   setTimeout(showRedirectFallback,6000);
   try{await loadGis();
     google.accounts.id.initialize({client_id:c.clientId,callback:r=>completeSignIn(r.credential),cancel_on_tap_outside:true,use_fedcm_for_prompt:true});
     google.accounts.id.renderButton($('gsiBtn'),{theme:'filled_black',size:'large',width:260,text:'signin_with'})}
   catch(e){let el=$('gsiBtn');if(el)el.innerHTML='<div class="muted">'+esc(e.message)+'</div>';showRedirectFallback()}}
+async function openSignIn(reason){
+  modal(`<h2>Sign in</h2><p class="muted">${esc(reason||'Sign in with Google so your trips can be restored on any device.')}</p><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><div id="gsiAlt"></div><p class="muted" style="font-size:.75rem">SplitLah stores your Google account ID and email to link your trips. Nothing is posted to your account.</p><button class="btn ghost" style="width:100%" onclick="closeModal()">Not now</button>`,true);
+  await mountGoogleButton()}
+/* First run. Sign-up needs a connection; using the app afterwards does not. */
+async function openOnboarding(reason){
+  if(!authCfg().clientId)await refreshConfig();
+  if(!ssoRequired())return openSettings(true);
+  onboardingFlow=true;
+  let offline=navigator.onLine===false;
+  modal(`<div style="text-align:center;padding:4px 0">
+    <div style="font-size:1.15rem;font-weight:800;margin-bottom:8px">Welcome to SplitLah</div>
+    <p class="muted" style="margin:0 0 20px">${esc(reason||'Split trip expenses with friends. Sign in so your trips are safe and follow you to any device.')}</p>
+    <div id="gsiBtn" style="display:flex;justify-content:center;min-height:44px"></div>
+    <div id="gsiAlt" style="margin-top:14px"></div>
+    ${offline?'<p style="color:#f08a24;font-size:.82rem;margin-top:14px">You appear to be offline. Signing up needs a connection — once you are in, SplitLah works offline.</p>':''}
+    <p class="muted" style="font-size:.73rem;margin-top:18px">We store your Google account ID and email to link your trips. Nothing is posted to your account.</p>
+  </div>`,true,true);
+  await mountGoogleButton()}
+function openPayNowStep(){
+  modal(`<h2>Add your PayNow?</h2><p class="muted">So friends can pay you back in one tap. Optional — you can add it later in Edit profile.</p><input class="field" id="obPayNow" inputmode="tel" placeholder="+65 mobile or NRIC" value="${esc(state.paynowProxy||'')}"><div style="height:12px"></div><button class="btn" style="width:100%" onclick="savePayNowStep()">Save</button><button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal();goHome()">Skip for now</button>`,true)}
+function savePayNowStep(){
+  state.paynowProxy=normalizePayNowProxy($('obPayNow')?.value||'');save();
+  let touched=[];Object.values(state.trips).forEach(t=>{let id=state.claims?.[t.code]||state.uid;
+    if(!t.deletedAt&&t.members&&t.members[id]){t.members[id].paynowProxy=state.paynowProxy;touched.push(t)}});
+  closeModal();goHome();toast(state.paynowProxy?'PayNow saved':'Skipped');
+  touched.forEach(t=>push(t))}
 function showRedirectFallback(){let el=$('gsiAlt');
   if(!el||el.dataset.shown)return;el.dataset.shown='1';
   el.innerHTML='<button class="btn ghost mini" style="width:100%;margin-bottom:12px" onclick="beginRedirectSignIn()">Nothing happening? Sign in another way</button>'}
@@ -256,7 +290,10 @@ async function completeSignIn(idToken){
       if(!state.trips[code]){try{await pull(code);added++}catch(e){/* keep going; nothing is deleted */}}}
     save();await refreshConfig();closeModal();
     toast(added?('Signed in — '+added+' trip'+(added===1?'':'s')+' restored'):'Signed in as '+(r.email||state.name||'you'));
-    flushOutbox();cur?renderTrip():renderHome()}
+    flushOutbox();cur?renderTrip():renderHome();
+    if(state.pendingInvite&&state.pendingInvite.code){let pi=state.pendingInvite;setTimeout(()=>openInvite(pi.code,pi.memberId||''),250)}
+    else if(onboardingFlow&&!state.paynowProxy){onboardingFlow=false;setTimeout(openPayNowStep,250)}
+    else onboardingFlow=false}
   catch(e){toast('Sign-in failed: '+e.message)}}
 function signOut(){
   modal(`<h2>Sign out?</h2><p class="muted">Your trips stay on this device. Sign in again any time to restore them elsewhere.</p><button class="btn" style="width:100%" onclick="confirmSignOut()">Sign out</button><button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal()">Cancel</button>`,true)}
@@ -544,10 +581,12 @@ function dismissInstall(){state.installDismissed=true;save();renderHome()}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();installPrompt=e;state.installDismissed=false;save();if(!cur)renderHome()});
 window.addEventListener('appinstalled',()=>{installPrompt=null;state.installDismissed=true;save();toast('SplitLah installed')});
 if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').then(r=>r.update()).catch(()=>{}));
-function modal(html,center=false){$('modalBody').innerHTML=html;$('modal').classList.toggle('center',center);$('modal').classList.add('on')} function closeModal(){$('modal').classList.remove('on')}
+function modal(html,center=false,sticky=false){$('modalBody').innerHTML=html;$('modal').classList.toggle('center',center);
+  let x=document.querySelector('#modal .close');if(x)x.style.display=sticky?'none':'';
+  $('modal').classList.add('on')} function closeModal(){$('modal').classList.remove('on')}
 window.addEventListener('popstate',e=>{let s=e.state||{view:'home'};if($('modal').classList.contains('on'))closeModal();if(s.view==='home')return goHome(false);if(s.code){if(!state.trips[s.code])return goHome(false);openTrip(s.code,s.tab||'dashboard',false)}});
 function setTheme(t){document.body.classList.toggle('light',t==='light');localStorage.setItem('sl_theme',t);const b1=$('btnDark'),b2=$('btnLight');if(b1)b1.classList.toggle('on',t==='dark');if(b2)b2.classList.toggle('on',t==='light')}function setFontSize(v){v=Math.max(12,Math.min(18,+v));document.documentElement.style.setProperty('--fs',v+'px');localStorage.setItem('sl_fs',v);const lbl=$('fsLabel');if(lbl)lbl.textContent=v+'px'}async function uploadReceipt(dataUrl){const key=state.imagekitKey,url=state.imagekitUrl;if(!key||!url)return dataUrl;try{const blob=await(await fetch(dataUrl)).blob();const fd=new FormData();const name='receipt_'+Date.now()+'.jpg';fd.append('file',blob,name);fd.append('fileName',name);fd.append('publicKey',key);const r=await fetch('https://upload.imagekit.io/api/v1/files/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw Error(j.message||'Upload failed');return j.url}catch(e){console.warn('ImageKit:',e.message);return dataUrl}}function renderSpendChart(){const exps=cur.expenses||[];if(!exps.length)return '<div class="muted" style="padding:20px 0;text-align:center">No expenses yet.</div>';const byDay={};exps.forEach(e=>{const d=(e.at||'').slice(0,10)||'?';byDay[d]=(byDay[d]||0)+(+e.amount||0)});const days=Object.keys(byDay).sort();if(!days.length)return '<div class="muted" style="padding:20px 0;text-align:center">No dated expenses.</div>';const MONTH_ABB=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const labels=days.map(d=>{const p=d.split('-');return p[2]+' '+MONTH_ABB[+p[1]-1];});const vals=days.map(d=>+byDay[d].toFixed(2));const id='sc'+Math.random().toString(36).slice(2,7);const light=document.body.classList.contains('light');const gc=light?'rgba(0,0,0,.07)':'rgba(255,255,255,.07)';const tc=light?'#6b6b65':'#b8b7af';setTimeout(()=>{const ctx=document.getElementById(id)?.getContext('2d');if(!ctx||!window.Chart)return;new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:'#1d9e75',borderRadius:5,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'S$'+c.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}})},60);return `<div class="card"><canvas id="${id}" height="90"></canvas></div>`}
-renderHome();if(handleAuthRedirect()){/* returning from Google */}else if(restoreParam){let _rt=restoreParam;try{let _u=new URL(location.href);_u.searchParams.delete('restore');history.replaceState({},'',_u.pathname+(_u.search||'')+_u.hash)}catch(e){}setTimeout(()=>applyRestoreToken(_rt),150)}else if(adminParam==='feedback')setTimeout(openAdminFeedback,100);else if(adminParam==='summary')setTimeout(openAdminSummary,100);else if(adminParam==='dashboard')setTimeout(openAdminDashboard,100);else if(joinParam)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),100);else if(state.pendingInvite?.code)setTimeout(()=>openInvite(state.pendingInvite.code,state.pendingInvite.memberId||''),100);else if(!state.onboarded)setTimeout(()=>openSettings(true),100);
+renderHome();if(handleAuthRedirect()){/* returning from Google */}else if(restoreParam){let _rt=restoreParam;try{let _u=new URL(location.href);_u.searchParams.delete('restore');history.replaceState({},'',_u.pathname+(_u.search||'')+_u.hash)}catch(e){}setTimeout(()=>applyRestoreToken(_rt),150)}else if(adminParam==='feedback')setTimeout(openAdminFeedback,100);else if(adminParam==='summary')setTimeout(openAdminSummary,100);else if(adminParam==='dashboard')setTimeout(openAdminDashboard,100);else if(joinParam)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),100);else if(state.pendingInvite?.code)setTimeout(()=>openInvite(state.pendingInvite.code,state.pendingInvite.memberId||''),100);else if(!state.onboarded)setTimeout(()=>openOnboarding(),100);
 setInterval(()=>{if(cur&&!$('modal').classList.contains('on')&&!activeFormDirty())refreshTrip(true)},12000);
 /* v57: keep unsent trips moving — retry on reconnect, on focus, and on a slow timer */
 setTimeout(()=>{refreshConfig();flushOutbox(false)},1500);

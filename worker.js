@@ -22,6 +22,7 @@ const SESSION_DAYS = 90;
 const CONFIG_DEFAULTS = {
   requireAuth: false,      // hard gate on the whole app — leave false
   authCreateOnly: false,   // require sign-in to create a NEW trip
+  ssoOnboarding: false,    // first run and invite joins require Google sign-in
   clientId: '',
   minVersion: 57
 };
@@ -445,6 +446,7 @@ export default {
         return json({
           requireAuth: !!cfg.requireAuth,
           authCreateOnly: !!cfg.authCreateOnly,
+          ssoOnboarding: !!cfg.ssoOnboarding,
           clientId: cfg.clientId || '',
           minVersion: cfg.minVersion || 0,
           legacy

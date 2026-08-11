@@ -12,8 +12,8 @@ import process from 'node:process';
 import { neon } from '@neondatabase/serverless';
 
 const cmd = (process.argv[2] || 'status').toLowerCase();
-if (!['status', 'snapshot', 'enable', 'disable', 'accounts'].includes(cmd)) {
-  console.error('Usage: rollout-auth.mjs status|accounts|snapshot|enable|disable');
+if (!['status', 'snapshot', 'enable', 'disable', 'accounts', 'sso-on', 'sso-off'].includes(cmd)) {
+  console.error('Usage: rollout-auth.mjs status|accounts|snapshot|enable|disable|sso-on|sso-off');
   process.exit(1);
 }
 
@@ -135,10 +135,29 @@ if (cmd === 'enable') {
   console.log('Clients pick this up at next boot. To undo: rollout-auth.mjs disable');
 }
 
+/* Google-only onboarding for NEW users. Existing users are untouched: this only
+   affects first run and invite joins, and only for people with no local state. */
+if (cmd === 'sso-on') {
+  const cfg = await readConfig();
+  cfg.ssoOnboarding = true;
+  await writeConfig(cfg);
+  console.log('ssoOnboarding = true. New users must sign in with Google; no name field, no local-only start.');
+  console.log('Signing UP now needs a connection. Using the app afterwards still works offline.');
+  console.log('To undo: rollout-auth.mjs sso-off');
+}
+
+if (cmd === 'sso-off') {
+  const cfg = await readConfig();
+  cfg.ssoOnboarding = false;
+  await writeConfig(cfg);
+  console.log('ssoOnboarding = false. New users are back to the name-only start.');
+}
+
 if (cmd === 'disable') {
   const cfg = await readConfig();
   cfg.authCreateOnly = false;
   cfg.requireAuth = false;
+  cfg.ssoOnboarding = false;
   await writeConfig(cfg);
-  console.log('Kill switch applied — open access restored. No redeploy needed.');
+  console.log('Kill switch applied — open access and the old onboarding restored. No redeploy needed.');
 }

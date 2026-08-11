@@ -126,6 +126,18 @@ Do not gate the UI on a live token check. Google ID tokens expire in ~1 hour; Sp
 - Send `Authorization: Bearer <sessionToken>` on writes when present.
 - `createTrip()` checks `authCreateOnly` and prompts for sign-in when required.
 
+## Google-only onboarding (v64, config-gated)
+
+`ssoOnboarding` in the CONFIG row. Off by default; `rollout-auth.mjs sso-on` turns it on, `sso-off` or `disable` reverts, no redeploy.
+
+When on, a **new** user sees one screen: Welcome + Continue with Google. No name field (Google supplies it), no PayNow field, no dismiss. After sign-in, one optional PayNow step that can be skipped. Invite arrivals must sign in first; the pending invite is remembered and the join resumes automatically afterwards.
+
+**Scope: sign-UP requires a connection, using the app does not.** A signed-in user with no signal must still open SplitLah and add expenses — that is what the v57 outbox exists for. Gating the app itself on connectivity would recreate the Kuantan failure behind a nicer screen. Only first run and invite joins need the network.
+
+Existing users are untouched: the flag is only consulted when there is no local identity yet.
+
+Accepted cost, deliberately: someone without a Google account cannot start, and neither can someone with no signal. Chee Wee chose tighter UX over reach. "Restore identity from another device" stays in Edit profile as the fallback for the no-Google case.
+
 ## Rollout
 
 1. Ship sign-in **unenforced**. `requireAuth: false`, `authCreateOnly: false`.
