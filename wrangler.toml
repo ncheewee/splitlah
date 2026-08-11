@@ -4,3 +4,9 @@ compatibility_date = "2026-04-26"
 
 [observability]
 enabled = true
+
+# The OAuth client ID is a public identifier, not a secret, so it lives here
+# rather than in `wrangler secret`. The session signing key IS secret:
+#   openssl rand -base64 48 | npx wrangler secret put SESSION_SECRET
+[vars]
+GOOGLE_CLIENT_ID = "748458376843-ir6ncv7akbqqv28hm4k4hp8kgf94mntd.apps.googleusercontent.com"
