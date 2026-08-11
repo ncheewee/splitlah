@@ -238,6 +238,29 @@ function makeEnvLastServerHas() { return true; }
   ok('Bearer token sent after sign-in', /^Bearer sess_/.test(after.auth), after.auth);
 }
 
+/* 12. Real-world shape: clean device, account whose claims point at a member id
+   that is NOT one of the account's device uids (a trip joined by invite). */
+{
+  console.log('\n[12] Clean device restores an invite-joined trip');
+  const PIXEL = 'u_5b57e327-9a52-461d-983b-1a8569db07e0';
+  const JBMEM = 'u_85c720e1-f2df-4467-881c-37e6931ed900';
+  const server = {
+    AES5K8: { code: 'AES5K8', name: 'Kuantan - Muar', currency: 'SGD', ownerId: PIXEL,
+      members: { [PIXEL]: { name: 'Chee Wee' } }, expenses: [], settlements: [] },
+    OYL1X3: { code: 'OYL1X3', name: 'JB Shenanigans', currency: 'SGD', ownerId: 'u_friend',
+      members: { u_friend: { name: 'Friend' }, [JBMEM]: { name: 'Chee Wee' } }, expenses: [], settlements: [] }
+  };
+  const accounts = { sub_1: { uids: [PIXEL], claims: { AES5K8: PIXEL, OYL1X3: JBMEM } } };
+  const { ev, st } = makeEnv({ server, accounts });
+  await sleep(120);
+  ok('device starts empty', Object.keys(st().trips).length === 0);
+  await ev('completeSignIn("GOOD")'); await sleep(200);
+  ok('both trips restored', Object.keys(st().trips).length === 2, J(Object.keys(st().trips)));
+  ok('both are visible on the home screen', ev('visibleTrips().length') === 2);
+  ok('invite-joined trip resolves to the right member', ev('me(state.trips["OYL1X3"])') === JBMEM);
+  ok('self-created trip resolves to the owning uid', ev('me(state.trips["AES5K8"])') === PIXEL);
+}
+
 console.log('\n' + (fail ? '>>> FAILED' : '>>> ALL GOOD') + ' — ' + pass + ' passed, ' + fail + ' failed\n');
 process.exit(fail ? 1 : 0);
 })();
