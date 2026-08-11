@@ -2,7 +2,7 @@ const fs=require('fs'),{JSDOM,VirtualConsole}=require('/tmp/node_modules/jsdom')
 let pass=0,fail=0;const ok=(n,c,x)=>{c?(pass++,console.log('  PASS  '+n)):(fail++,console.log('  FAIL  '+n+(x?'  ['+x+']':'')))};
 const html=fs.readFileSync(process.argv[2],'utf8');
 function env(url,opts={}){
- const store={},errs=[];const vc=new VirtualConsole();
+ const store=opts.seed?{'sl_authprobe_v1':opts.seed}:{},errs=[];const vc=new VirtualConsole();
  vc.on('jsdomError',e=>errs.push(e.message));vc.on('error',e=>errs.push(String(e)));
  const dom=new JSDOM(html,{url,runScripts:'dangerously',pretendToBeVisual:true,virtualConsole:vc,resources:undefined,beforeParse(w){
   Object.defineProperty(w,'localStorage',{configurable:true,value:{getItem:k=>k in store?store[k]:null,setItem:(k,v)=>{store[k]=String(v)},removeItem:k=>{delete store[k]},clear(){},key:i=>Object.keys(store)[i],get length(){return Object.keys(store).length}}});
@@ -53,6 +53,17 @@ console.log('\n[auth probe page]');
  ok('aud match detected',/aud matches client/.test(card)&&/yes/.test(card));
  ok('email shown as domain only in report',!/someone@/.test(e3.w.document.getElementById('report').textContent));
  ok('state carried the join code back',/XYZ789/.test(e3.w.document.getElementById('deepCard').innerHTML));
+}
+{ // results survive a Mode C page reload (the iPad observation)
+ const seeded={containerId:'c_seed1234',visits:2,firstSeen:new Date().toISOString(),
+   results:{A:{ok:true,audOk:true,at:new Date().toISOString()},B:{ok:true,audOk:true,at:new Date().toISOString()}}};
+ const {w,store}=env('https://ncheewee.github.io/splitlah/auth-test.html',{seed:JSON.stringify(seeded)});
+ await sleep(280);
+ const pa=w.document.getElementById('pA').textContent, pb=w.document.getElementById('pB').textContent;
+ ok('mode A result survives the redirect reload',/SUCCESS/.test(pa),pa);
+ ok('mode B result survives the redirect reload',/SUCCESS/.test(pb),pb);
+ const rep=JSON.parse(w.document.getElementById('report').textContent);
+ ok('report still carries earlier results',rep.modeA_gisButton&&rep.modeA_gisButton.ok===true);
 }
 { // error return
  const {w}=env('https://ncheewee.github.io/splitlah/auth-test.html#error=disallowed_useragent&error_description=blocked');

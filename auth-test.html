@@ -231,8 +231,11 @@ function initGis(){
     });
     google.accounts.id.renderButton(document.getElementById('gisButton'), { theme: 'filled_black', size: 'large', width: 280, text: 'signin_with' });
     gisReady = true;
-    pill('pA', 'p-idle', 'ready — tap button');
-    pill('pB', 'p-idle', 'ready');
+    /* Mode C is a full page navigation, so A and B have already been re-rendered
+       from stored results by then. Only mark them idle if they were never run. */
+    const st = probe.results || {};
+    if (!st.A) pill('pA', 'p-idle', 'ready — tap button');
+    if (!st.B) pill('pB', 'p-idle', 'ready');
   } catch(e){ onFail('A', 'initialize threw: ' + e.message); }
 }
 function runOneTap(){
@@ -325,6 +328,23 @@ function resetProbe(){
   try { localStorage.removeItem(PROBE_KEY); sessionStorage.removeItem('sl_authprobe_session') } catch(e){}
   location.href = location.pathname;
 }
+/* Results survive the Mode C page reload — show that, instead of implying
+   the earlier modes were never run. */
+function restorePills(){
+  const r = probe.results || {};
+  ['A','B','C'].forEach(m => {
+    const x = r[m];
+    if (!x) return;
+    if (x.ok) pill('p'+m, x.audOk === false ? 'p-warn' : 'p-ok', 'SUCCESS (earlier)');
+    else pill('p'+m, 'p-bad', 'FAILED');
+  });
+  const done = ['A','B','C'].filter(m => r[m] && r[m].ok).length;
+  if (done) {
+    const el = document.getElementById('tokenCard');
+    if (!probe.lastToken) el.innerHTML = '<span class="pill p-ok">' + done + ' of 3 modes passed earlier</span>';
+  }
+}
+restorePills();
 document.getElementById('tapCount').value = probe.tapCount || '';
 document.getElementById('notes').value = probe.notes || '';
 renderReport();
