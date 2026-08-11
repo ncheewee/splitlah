@@ -17,11 +17,16 @@ Measured with `auth-test.html` (v59+):
 | Android TWA (Pixel 8) | pass | pass | pass | shared with Chrome | survived |
 | Android Chrome (Pixel 8) | pass | pass | pass | shared with TWA | survived |
 | iOS standalone PWA (iPad) | pass | pass | pass | held through redirect | n/a |
-| iOS Safari | not tested | not tested | not tested | not compared | n/a |
+| macOS Safari | pass (live app) | - | - | own uid, trips restored | n/a |
+| Chrome incognito | **callback never fires** | - | - | - | - |
 
 Android shares storage between the TWA and Chrome, so **the continuity problem is iOS-only**. On Android, sign-in buys recovery and access control, not continuity.
 
 **iOS is cleared.** Tested in the standalone home-screen app on iPad: all three modes pass, and after the Mode C redirect the container ID was unchanged (visits 4), so the OAuth round trip stays inside the app rather than handing off to Safari. Still worth confirming on a real iPhone before enforcement, but that is verification, not discovery.
+
+**Live end-to-end result (v62):** signing in on the Pixel then on macOS Safari produced one account with three uids and both trips restored on the second device — including `OYL1X3`, joined by invite, whose member id is not any device uid. The merge works.
+
+**Chrome incognito is the one failure.** The Google button renders and the account chooser appears, but the GIS callback never fires, so `completeSignIn` never runs (no "Signing in…" toast). Third-party cookies are blocked in incognito and GIS depends on them. This will get *more* common as third-party cookies are restricted generally, so a redirect fallback is worth building: Mode C passed in every context and does not depend on cookies at all.
 
 ## Core principle: the account is an index, not an identity
 
