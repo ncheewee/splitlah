@@ -56,7 +56,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){const th=localStorage.getItem('sl_theme');const fs=localStorage.getItem('sl_fs');if(th==='light')document.body.classList.add('light');if(fs)document.documentElement.style.setProperty('--fs',fs+'px')})();
-const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=62;
+const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=63;
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.vTag').forEach(el=>el.textContent='v'+APP_VERSION)});
 const CATS=['🍜 Food','🏨 Stay','🚌 Transport','🎡 Activities','🛍 Shopping','🌃 Nightlife','💊 Health','★ Other'];
 let dashChart='flow',expCat=7;
@@ -193,11 +193,53 @@ async function openSignIn(reason){
   let c=authCfg();
   if(!c.clientId){c=await refreshConfig()||{};}
   if(!c.clientId)return toast('Sign-in is not configured yet');
-  modal(`<h2>Sign in</h2><p class="muted">${esc(reason||'Sign in with Google so your trips can be restored on any device.')}</p><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><p class="muted" style="font-size:.75rem">SplitLah stores your Google account ID and email to link your trips. Nothing is posted to your account.</p><button class="btn ghost" style="width:100%" onclick="closeModal()">Not now</button>`,true);
+  modal(`<h2>Sign in</h2><p class="muted">${esc(reason||'Sign in with Google so your trips can be restored on any device.')}</p><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><div id="gsiAlt"></div><p class="muted" style="font-size:.75rem">SplitLah stores your Google account ID and email to link your trips. Nothing is posted to your account.</p><button class="btn ghost" style="width:100%" onclick="closeModal()">Not now</button>`,true);
+  /* The Google button needs third-party cookies to deliver its credential. Where
+     those are blocked (incognito, strict privacy settings) the account chooser
+     appears and then nothing happens at all — so offer the redirect flow, which
+     needs no cookies, rather than leaving a dead end. */
+  setTimeout(showRedirectFallback,6000);
   try{await loadGis();
     google.accounts.id.initialize({client_id:c.clientId,callback:r=>completeSignIn(r.credential),cancel_on_tap_outside:true,use_fedcm_for_prompt:true});
     google.accounts.id.renderButton($('gsiBtn'),{theme:'filled_black',size:'large',width:260,text:'signin_with'})}
-  catch(e){let el=$('gsiBtn');if(el)el.innerHTML='<div class="muted">'+esc(e.message)+'</div>'}}
+  catch(e){let el=$('gsiBtn');if(el)el.innerHTML='<div class="muted">'+esc(e.message)+'</div>';showRedirectFallback()}}
+function showRedirectFallback(){let el=$('gsiAlt');
+  if(!el||el.dataset.shown)return;el.dataset.shown='1';
+  el.innerHTML='<button class="btn ghost mini" style="width:100%;margin-bottom:12px" onclick="beginRedirectSignIn()">Nothing happening? Sign in another way</button>'}
+function googleAuthUrl(nonce){
+  let c=authCfg(),u=new URL('https://accounts.google.com/o/oauth2/v2/auth'),join=params.get('join')||'';
+  u.searchParams.set('client_id',c.clientId||'');
+  u.searchParams.set('response_type','id_token');
+  u.searchParams.set('scope','openid email profile');
+  u.searchParams.set('redirect_uri',location.origin+location.pathname);
+  u.searchParams.set('nonce',nonce);
+  u.searchParams.set('prompt','select_account');
+  u.searchParams.set('state',join?'join='+encodeURIComponent(join):'none');
+  return u.toString()}
+function beginRedirectSignIn(){
+  let c=authCfg();if(!c.clientId)return toast('Sign-in is not configured yet');
+  let nonce='n_'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
+  state.authNonce=nonce;save();
+  location.href=googleAuthUrl(nonce)}
+function decodeJwtPayload(t){try{
+  let p=String(t).split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+  p+='='.repeat((4-(p.length%4))%4);
+  return JSON.parse(decodeURIComponent(escape(atob(p))))}catch(e){return null}}
+/* Returns true when this page load is a return trip from Google. */
+function handleAuthRedirect(){
+  if(!location.hash||location.hash.length<2)return false;
+  let h=new URLSearchParams(location.hash.slice(1)),err=h.get('error'),idt=h.get('id_token');
+  if(!err&&!idt)return false;
+  let st=h.get('state')||'';
+  try{history.replaceState({},'',location.pathname+location.search)}catch(e){}
+  if(err){toast('Sign-in failed: '+err);return true}
+  let claims=decodeJwtPayload(idt);
+  if(!claims||!state.authNonce||claims.nonce!==state.authNonce){
+    delete state.authNonce;save();toast('Sign-in could not be verified — please try again');return true}
+  delete state.authNonce;save();
+  if(st.indexOf('join=')===0)joinParam=decodeURIComponent(st.slice(5));
+  setTimeout(()=>completeSignIn(idt),60);
+  return true}
 async function completeSignIn(idToken){
   if(!idToken)return toast('Sign-in cancelled');
   toast('Signing in…');
@@ -505,7 +547,7 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 function modal(html,center=false){$('modalBody').innerHTML=html;$('modal').classList.toggle('center',center);$('modal').classList.add('on')} function closeModal(){$('modal').classList.remove('on')}
 window.addEventListener('popstate',e=>{let s=e.state||{view:'home'};if($('modal').classList.contains('on'))closeModal();if(s.view==='home')return goHome(false);if(s.code){if(!state.trips[s.code])return goHome(false);openTrip(s.code,s.tab||'dashboard',false)}});
 function setTheme(t){document.body.classList.toggle('light',t==='light');localStorage.setItem('sl_theme',t);const b1=$('btnDark'),b2=$('btnLight');if(b1)b1.classList.toggle('on',t==='dark');if(b2)b2.classList.toggle('on',t==='light')}function setFontSize(v){v=Math.max(12,Math.min(18,+v));document.documentElement.style.setProperty('--fs',v+'px');localStorage.setItem('sl_fs',v);const lbl=$('fsLabel');if(lbl)lbl.textContent=v+'px'}async function uploadReceipt(dataUrl){const key=state.imagekitKey,url=state.imagekitUrl;if(!key||!url)return dataUrl;try{const blob=await(await fetch(dataUrl)).blob();const fd=new FormData();const name='receipt_'+Date.now()+'.jpg';fd.append('file',blob,name);fd.append('fileName',name);fd.append('publicKey',key);const r=await fetch('https://upload.imagekit.io/api/v1/files/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw Error(j.message||'Upload failed');return j.url}catch(e){console.warn('ImageKit:',e.message);return dataUrl}}function renderSpendChart(){const exps=cur.expenses||[];if(!exps.length)return '<div class="muted" style="padding:20px 0;text-align:center">No expenses yet.</div>';const byDay={};exps.forEach(e=>{const d=(e.at||'').slice(0,10)||'?';byDay[d]=(byDay[d]||0)+(+e.amount||0)});const days=Object.keys(byDay).sort();if(!days.length)return '<div class="muted" style="padding:20px 0;text-align:center">No dated expenses.</div>';const MONTH_ABB=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const labels=days.map(d=>{const p=d.split('-');return p[2]+' '+MONTH_ABB[+p[1]-1];});const vals=days.map(d=>+byDay[d].toFixed(2));const id='sc'+Math.random().toString(36).slice(2,7);const light=document.body.classList.contains('light');const gc=light?'rgba(0,0,0,.07)':'rgba(255,255,255,.07)';const tc=light?'#6b6b65':'#b8b7af';setTimeout(()=>{const ctx=document.getElementById(id)?.getContext('2d');if(!ctx||!window.Chart)return;new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:'#1d9e75',borderRadius:5,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'S$'+c.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}})},60);return `<div class="card"><canvas id="${id}" height="90"></canvas></div>`}
-renderHome();if(restoreParam){let _rt=restoreParam;try{let _u=new URL(location.href);_u.searchParams.delete('restore');history.replaceState({},'',_u.pathname+(_u.search||'')+_u.hash)}catch(e){}setTimeout(()=>applyRestoreToken(_rt),150)}else if(adminParam==='feedback')setTimeout(openAdminFeedback,100);else if(adminParam==='summary')setTimeout(openAdminSummary,100);else if(adminParam==='dashboard')setTimeout(openAdminDashboard,100);else if(joinParam)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),100);else if(state.pendingInvite?.code)setTimeout(()=>openInvite(state.pendingInvite.code,state.pendingInvite.memberId||''),100);else if(!state.onboarded)setTimeout(()=>openSettings(true),100);
+renderHome();if(handleAuthRedirect()){/* returning from Google */}else if(restoreParam){let _rt=restoreParam;try{let _u=new URL(location.href);_u.searchParams.delete('restore');history.replaceState({},'',_u.pathname+(_u.search||'')+_u.hash)}catch(e){}setTimeout(()=>applyRestoreToken(_rt),150)}else if(adminParam==='feedback')setTimeout(openAdminFeedback,100);else if(adminParam==='summary')setTimeout(openAdminSummary,100);else if(adminParam==='dashboard')setTimeout(openAdminDashboard,100);else if(joinParam)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),100);else if(state.pendingInvite?.code)setTimeout(()=>openInvite(state.pendingInvite.code,state.pendingInvite.memberId||''),100);else if(!state.onboarded)setTimeout(()=>openSettings(true),100);
 setInterval(()=>{if(cur&&!$('modal').classList.contains('on')&&!activeFormDirty())refreshTrip(true)},12000);
 /* v57: keep unsent trips moving — retry on reconnect, on focus, and on a slow timer */
 setTimeout(()=>{refreshConfig();flushOutbox(false)},1500);

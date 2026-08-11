@@ -21,7 +21,7 @@ function makeEnv(opts = {}) {
   const jr = (b, s) => ({ ok: s >= 200 && s < 300, status: s, json: async () => b, clone() { return this; } });
 
   const dom = new JSDOM(html, {
-    url: 'https://splitlah.example/splitlah/', runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc,
+    url: 'https://splitlah.example/splitlah/' + (opts.hash || ''), runScripts: 'dangerously', pretendToBeVisual: true, virtualConsole: vc,
     beforeParse(w) {
       Object.defineProperty(w, 'localStorage', { configurable: true, value: {
         getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); },
@@ -259,6 +259,67 @@ function makeEnvLastServerHas() { return true; }
   ok('both are visible on the home screen', ev('visibleTrips().length') === 2);
   ok('invite-joined trip resolves to the right member', ev('me(state.trips["OYL1X3"])') === JBMEM);
   ok('self-created trip resolves to the owning uid', ev('me(state.trips["AES5K8"])') === PIXEL);
+}
+
+/* 13. Redirect fallback for browsers where the GIS callback never fires. */
+{
+  console.log('\n[13] Redirect sign-in fallback');
+  const b64u = o => Buffer.from(JSON.stringify(o)).toString('base64')
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  const jwt = n => 'h.' + b64u({ iss:'https://accounts.google.com', aud:'test.apps.googleusercontent.com',
+    sub:'sub_1', email:'me@gmail.com', email_verified:true, name:'Chee Wee', nonce:n,
+    exp:Math.floor(Date.now()/1000)+3600 }) + '.s';
+
+  // the modal offers the fallback, and the URL it builds is a proper OIDC request
+  {
+    const { w, ev } = makeEnv({});
+    await sleep(150);
+    ev('openSignIn()'); await sleep(120);
+    ev('showRedirectFallback()');
+    ok('fallback button offered', /beginRedirectSignIn/.test(w.document.getElementById('modal').innerHTML));
+    const url = ev('googleAuthUrl("n_test")');
+    ok('targets Google OAuth', /^https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth/.test(url), url.slice(0, 60));
+    ok('uses id_token response type', /response_type=id_token/.test(url));
+    ok('carries the nonce', /nonce=n_test/.test(url));
+    ok('asks which account', /prompt=select_account/.test(url));
+    ok('returns to the app itself', url.includes(encodeURIComponent('https://splitlah.example/splitlah/')));
+  }
+
+  // returning with a matching nonce completes sign-in
+  {
+    const server = { AES5K8: { code:'AES5K8', name:'Kuantan - Muar', currency:'SGD', ownerId:'u_p',
+      members:{ u_p:{name:'Chee Wee'} }, expenses:[], settlements:[] } };
+    const accounts = { sub_1: { uids:['u_p'], claims:{ AES5K8:'u_p' } } };
+    const seed = { uid:'u_new', name:'', onboarded:false, appVersion:62, trips:{}, claims:{},
+                   authNonce:'n_good', api:'https://splitlah-api.ncheewee.workers.dev' };
+    const { ev, st } = makeEnv({ server, accounts,
+      storage:{ 'sl_codex_v1': J(seed) }, hash:'#id_token=' + jwt('n_good') + '&state=none' });
+    await sleep(400);
+    ok('nonce consumed', !st().authNonce);
+    ok('signed in via redirect', !!(st().auth && st().auth.sessionToken));
+    ok('trips restored', !!st().trips['AES5K8'], J(Object.keys(st().trips)));
+  }
+
+  // a mismatched nonce is refused and changes nothing
+  {
+    const seed = { uid:'u_new', name:'Chee Wee', onboarded:true, appVersion:62, trips:{}, claims:{},
+                   authNonce:'n_expected', api:'https://splitlah-api.ncheewee.workers.dev' };
+    const { ev, st } = makeEnv({ storage:{ 'sl_codex_v1': J(seed) },
+      hash:'#id_token=' + jwt('n_attacker') + '&state=none' });
+    await sleep(300);
+    ok('replayed token rejected', !st().auth);
+    ok('nonce cleared after a failed attempt', !st().authNonce);
+  }
+
+  // an OAuth error is surfaced, not swallowed
+  {
+    const seed = { uid:'u_new', name:'Chee Wee', onboarded:true, appVersion:62, trips:{}, claims:{},
+                   api:'https://splitlah-api.ncheewee.workers.dev' };
+    const { w, st } = makeEnv({ storage:{ 'sl_codex_v1': J(seed) }, hash:'#error=access_denied' });
+    await sleep(300);
+    ok('error shown to the user', /access_denied/.test(w.document.getElementById('toast').textContent));
+    ok('no session created', !st().auth);
+  }
 }
 
 console.log('\n' + (fail ? '>>> FAILED' : '>>> ALL GOOD') + ' — ' + pass + ' passed, ' + fail + ' failed\n');

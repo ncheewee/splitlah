@@ -26,7 +26,9 @@ Android shares storage between the TWA and Chrome, so **the continuity problem i
 
 **Live end-to-end result (v62):** signing in on the Pixel then on macOS Safari produced one account with three uids and both trips restored on the second device — including `OYL1X3`, joined by invite, whose member id is not any device uid. The merge works.
 
-**Chrome incognito is the one failure.** The Google button renders and the account chooser appears, but the GIS callback never fires, so `completeSignIn` never runs (no "Signing in…" toast). Third-party cookies are blocked in incognito and GIS depends on them. This will get *more* common as third-party cookies are restricted generally, so a redirect fallback is worth building: Mode C passed in every context and does not depend on cookies at all.
+**Chrome incognito is the one failure.** The Google button renders and the account chooser appears, but the GIS callback never fires, so `completeSignIn` never runs (no "Signing in…" toast). Third-party cookies are blocked in incognito and GIS depends on them. This will get *more* common as third-party cookies are restricted generally.
+
+**Fixed in v63.** The sign-in modal offers "Nothing happening? Sign in another way" after 6 seconds (or immediately if the GIS script fails to load), which runs the redirect flow — `response_type=id_token` with a nonce persisted across the navigation, `state` carrying any `?join=` code, and the return handled at boot before the other deep-link branches. The nonce is checked on return, so a token from another flow is refused. Requires `https://ncheewee.github.io/splitlah/` in the OAuth client's **Authorised redirect URIs**.
 
 ## Core principle: the account is an index, not an identity
 
