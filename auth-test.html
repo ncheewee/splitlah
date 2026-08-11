@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="AuthTest">
+<meta name="theme-color" content="#075943">
+<title>SplitLah · Google auth probe</title>
+<style>
+:root{--bg:#191a17;--card:#212320;--line:rgba(255,255,255,.09);--fg:#efeee7;--muted:#a3a29a;--ok:#1d9e75;--bad:#d9534f;--warn:#f08a24}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px 14px 60px;-webkit-text-size-adjust:100%}
+h1{font-size:1.05rem;letter-spacing:.02em;margin:0 0 2px}
+h2{font-size:.72rem;text-transform:uppercase;letter-spacing:.09em;color:var(--muted);margin:22px 0 8px;font-weight:700}
+.sub{color:var(--muted);font-size:.8rem;margin:0 0 4px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.row{display:flex;gap:10px;align-items:flex-start}
+.row .k{color:var(--muted);flex:0 0 44%;font-size:.79rem}
+.row .v{flex:1;font-size:.79rem;word-break:break-word;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.03em}
+.p-ok{background:rgba(29,158,117,.16);color:#5fd6ab}
+.p-bad{background:rgba(217,83,79,.16);color:#ff9d99}
+.p-warn{background:rgba(240,138,36,.16);color:#ffb765}
+.p-idle{background:rgba(255,255,255,.07);color:var(--muted)}
+button{font:inherit;font-weight:700;border-radius:11px;border:1px solid var(--line);background:#2c2f2b;color:var(--fg);padding:11px 14px;width:100%;margin-top:8px;-webkit-appearance:none}
+button.primary{background:var(--ok);border-color:transparent;color:#04140f}
+button:active{opacity:.75}
+pre{background:#151614;border:1px solid var(--line);border-radius:10px;padding:11px;overflow:auto;font-size:.7rem;line-height:1.45;margin:8px 0 0;max-height:260px}
+.note{font-size:.74rem;color:var(--muted);margin-top:7px}
+.warnbox{border-left:3px solid var(--warn);padding-left:10px}
+input{font:inherit;width:100%;background:#151614;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px;margin-top:8px}
+a{color:#5fd6ab}
+</style>
+</head>
+<body>
+
+<h1>SplitLah · Google auth probe</h1>
+<p class="sub">Standalone diagnostic. Does <b>not</b> read or write SplitLah trip data.</p>
+<div class="card warnbox" style="font-size:.76rem">
+Storage used: <code>sl_authprobe_v1</code> only. The app's key <code>sl_codex_v1</code> is never touched.
+</div>
+
+<h2>1 · Environment</h2>
+<div class="card" id="envCard"></div>
+
+<h2>2 · Storage container</h2>
+<div class="card" id="containerCard"></div>
+<p class="note">Open this page in every context (Safari, home-screen app, TWA). Same container ID = shared storage. Different IDs = separate containers, which is the continuity problem.</p>
+
+<h2>3 · Deep link survival</h2>
+<div class="card" id="deepCard"></div>
+<p class="note">Reach this page as <code>auth-test.html?join=ABC123</code>, then sign in. If <code>join</code> is gone afterwards, invite links break under an auth gate.</p>
+
+<h2>4 · Sign-in modes</h2>
+<div class="card">
+  <div class="row"><div class="k">Mode A · GIS button</div><div class="v"><span id="pA" class="pill p-idle">not run</span></div></div>
+  <div id="gisButton" style="margin-top:10px;min-height:44px"></div>
+  <div class="note" id="nA">Renders Google's own button. Uses popup/FedCM under the hood.</div>
+</div>
+<div class="card">
+  <div class="row"><div class="k">Mode B · One Tap</div><div class="v"><span id="pB" class="pill p-idle">not run</span></div></div>
+  <button onclick="runOneTap()">Trigger One Tap</button>
+  <div class="note" id="nB">Often suppressed by cookie policy or FedCM migration.</div>
+</div>
+<div class="card">
+  <div class="row"><div class="k">Mode C · Full redirect</div><div class="v"><span id="pC" class="pill p-idle">not run</span></div></div>
+  <button onclick="runRedirect()">Sign in via redirect</button>
+  <div class="note" id="nC">Leaves the app entirely. The key question is whether you land back <b>inside</b> the installed app or get dumped into the browser.</div>
+</div>
+
+<h2>5 · Result</h2>
+<div class="card" id="tokenCard"><span class="pill p-idle">no token yet</span></div>
+
+<h2>6 · Report</h2>
+<div class="card">
+  <div class="note">Taps needed to complete sign-in (your count):</div>
+  <input id="tapCount" inputmode="numeric" placeholder="e.g. 2" oninput="saveNotes()">
+  <div class="note" style="margin-top:10px">Anything odd you saw:</div>
+  <input id="notes" placeholder="e.g. bounced to Safari and never returned" oninput="saveNotes()">
+  <button class="primary" onclick="copyReport()">Copy report</button>
+  <button onclick="resetProbe()">Reset probe data</button>
+  <pre id="report"></pre>
+  <div class="note">Identifiers are hashed and emails reduced to their domain, so the report is safe to paste into chat.</div>
+</div>
+
+<script>
+const PROBE_KEY = 'sl_authprobe_v1';
+const DEFAULT_CLIENT_ID = '748458376843-ir6ncv7akbqqv28hm4k4hp8kgf94mntd.apps.googleusercontent.com';
+const params = new URLSearchParams(location.search);
+const CLIENT_ID = params.get('client_id') || DEFAULT_CLIENT_ID;
+
+function load(){ try { return JSON.parse(localStorage.getItem(PROBE_KEY) || '{}') } catch(e){ return {} } }
+function save(s){ try { localStorage.setItem(PROBE_KEY, JSON.stringify(s)) } catch(e){} }
+let probe = load();
+if (!probe.containerId) { probe.containerId = 'c_' + Math.random().toString(36).slice(2,10); probe.firstSeen = new Date().toISOString(); }
+probe.visits = (probe.visits || 0) + 1;
+save(probe);
+
+let sessionFresh = false;
+try { sessionFresh = !sessionStorage.getItem('sl_authprobe_session'); sessionStorage.setItem('sl_authprobe_session','1'); } catch(e){}
+
+function pill(el, cls, text){ const e = document.getElementById(el); e.className = 'pill ' + cls; e.textContent = text; }
+function rows(list){ return list.map(([k,v]) => `<div class="row"><div class="k">${k}</div><div class="v">${v}</div></div>`).join(''); }
+async function sha8(s){
+  try {
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(s)));
+    return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('').slice(0,8);
+  } catch(e){ return 'nohash' }
+}
+
+/* ---- 1. environment ---- */
+const standaloneMedia = (() => { try { return matchMedia('(display-mode: standalone)').matches } catch(e){ return false } })();
+const iosStandalone = navigator.standalone === true;
+const isTWA = (document.referrer || '').startsWith('android-app://');
+const ua = navigator.userAgent;
+const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/.test(ua);
+let context = 'browser';
+if (isTWA) context = 'Android TWA';
+else if (iosStandalone || standaloneMedia) context = isIOS ? 'iOS standalone PWA' : 'installed PWA';
+else if (isIOS) context = 'iOS browser';
+else if (isAndroid) context = 'Android browser';
+
+let popupBlocked = 'not tested';
+function testPopup(){
+  try {
+    const w = window.open('', '_blank', 'width=200,height=200');
+    if (!w || w.closed) { popupBlocked = 'BLOCKED'; }
+    else { w.close(); popupBlocked = 'allowed'; }
+  } catch(e){ popupBlocked = 'error: ' + e.message }
+  renderEnv();
+}
+
+function renderEnv(){
+  document.getElementById('envCard').innerHTML = rows([
+    ['Context', '<b>' + context + '</b>'],
+    ['display-mode: standalone', standaloneMedia],
+    ['navigator.standalone', String(navigator.standalone)],
+    ['TWA referrer', isTWA ? document.referrer : 'no'],
+    ['FedCM available', ('IdentityCredential' in window)],
+    ['cookiesEnabled', navigator.cookieEnabled],
+    ['Popups', popupBlocked + ' <button style="width:auto;display:inline-block;margin:0 0 0 6px;padding:3px 9px;font-size:.7rem" onclick="testPopup()">test</button>'],
+    ['Online', navigator.onLine],
+    ['Origin', location.origin],
+    ['Path', location.pathname],
+    ['UA', '<span style="font-size:.68rem">' + ua + '</span>']
+  ]);
+}
+renderEnv();
+
+/* ---- 2. storage container ---- */
+document.getElementById('containerCard').innerHTML = rows([
+  ['Container ID', '<b>' + probe.containerId + '</b>'],
+  ['First seen here', (probe.firstSeen || '').slice(0,19).replace('T',' ')],
+  ['Visits in this container', probe.visits],
+  ['sessionStorage', sessionFresh ? 'new session' : 'continued session'],
+  ['Previous successful token', probe.lastToken ? (probe.lastToken.mode + ' · ' + probe.lastToken.at.slice(0,19).replace('T',' ')) : '<span style="color:var(--muted)">none</span>']
+]);
+
+/* ---- 3. deep link ---- */
+function renderDeep(){
+  const join = params.get('join');
+  const restored = probe.deepLinkBefore;
+  document.getElementById('deepCard').innerHTML = rows([
+    ['?join= now', join ? '<b>' + join + '</b>' : '<span style="color:var(--muted)">absent</span>'],
+    ['?join= before sign-in', restored ? '<b>' + restored + '</b>' : '<span style="color:var(--muted)">not recorded</span>'],
+    ['Survived redirect', restored ? (join === restored
+        ? '<span class="pill p-ok">yes</span>'
+        : '<span class="pill p-bad">LOST</span>') : '<span class="pill p-idle">n/a</span>']
+  ]);
+}
+if (params.get('join')) { probe.deepLinkBefore = params.get('join'); save(probe); }
+renderDeep();
+
+/* ---- token handling ---- */
+function decodeJwt(t){
+  try {
+    const p = t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    return JSON.parse(decodeURIComponent(escape(atob(p))));
+  } catch(e){ return null }
+}
+async function onToken(mode, token, extra){
+  const claims = decodeJwt(token);
+  if (!claims) { pill('p'+mode, 'p-bad', 'bad token'); return; }
+  const subHash = await sha8(claims.sub);
+  const emailDomain = (claims.email || '').split('@')[1] || '(none)';
+  const expMin = claims.exp ? Math.round((claims.exp * 1000 - Date.now()) / 60000) : null;
+  const audOk = claims.aud === CLIENT_ID;
+  pill('p'+mode, audOk ? 'p-ok' : 'p-warn', audOk ? 'SUCCESS' : 'token, aud mismatch');
+  probe.lastToken = { mode, at: new Date().toISOString(), subHash, emailDomain, audOk, expMin, context, containerId: probe.containerId };
+  probe.results = probe.results || {};
+  probe.results[mode] = { ok: true, audOk, expMin, at: new Date().toISOString() };
+  save(probe);
+  document.getElementById('tokenCard').innerHTML = rows([
+    ['Mode', mode],
+    ['Signed in as', '<b>' + (claims.name || '(no name claim)') + '</b>'],
+    ['Email domain', emailDomain],
+    ['sub (hashed)', subHash],
+    ['aud matches client', audOk ? '<span class="pill p-ok">yes</span>' : '<span class="pill p-bad">NO</span>'],
+    ['iss', claims.iss || '(none)'],
+    ['Expires in', expMin + ' min'],
+    ['email_verified', String(claims.email_verified)]
+  ]) + (extra ? '<div class="note">' + extra + '</div>' : '');
+  renderReport();
+}
+function onFail(mode, why){
+  pill('p'+mode, 'p-bad', 'FAILED');
+  probe.results = probe.results || {};
+  probe.results[mode] = { ok: false, why: String(why), at: new Date().toISOString() };
+  save(probe);
+  document.getElementById('n'+mode).innerHTML = '<b style="color:var(--warn)">' + why + '</b>';
+  renderReport();
+}
+
+/* ---- Mode A + B: Google Identity Services ---- */
+let gisReady = false;
+function initGis(){
+  if (!window.google || !google.accounts || !google.accounts.id) {
+    onFail('A', 'GIS script did not load (blocked or offline)');
+    onFail('B', 'GIS script did not load');
+    return;
+  }
+  try {
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID,
+      callback: r => onToken('A', r.credential, 'Returned via GIS callback.'),
+      auto_select: false,
+      cancel_on_tap_outside: true,
+      use_fedcm_for_prompt: true
+    });
+    google.accounts.id.renderButton(document.getElementById('gisButton'), { theme: 'filled_black', size: 'large', width: 280, text: 'signin_with' });
+    gisReady = true;
+    pill('pA', 'p-idle', 'ready — tap button');
+    pill('pB', 'p-idle', 'ready');
+  } catch(e){ onFail('A', 'initialize threw: ' + e.message); }
+}
+function runOneTap(){
+  if (!gisReady) return onFail('B', 'GIS not ready');
+  try {
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID,
+      callback: r => onToken('B', r.credential, 'Returned via One Tap.'),
+      use_fedcm_for_prompt: true
+    });
+    google.accounts.id.prompt(n => {
+      try {
+        if (n.isNotDisplayed && n.isNotDisplayed()) onFail('B', 'not displayed: ' + n.getNotDisplayedReason());
+        else if (n.isSkippedMoment && n.isSkippedMoment()) onFail('B', 'skipped: ' + n.getSkippedReason());
+      } catch(e){ /* FedCM gives no moment details */ }
+    });
+    pill('pB', 'p-warn', 'prompted…');
+  } catch(e){ onFail('B', e.message); }
+}
+
+/* ---- Mode C: full-page redirect ---- */
+function runRedirect(){
+  const nonce = 'n_' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  probe.pendingNonce = nonce;
+  probe.redirectStartedAt = new Date().toISOString();
+  save(probe);
+  const redirectUri = location.origin + location.pathname;
+  const join = params.get('join') || '';
+  const u = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+  u.searchParams.set('client_id', CLIENT_ID);
+  u.searchParams.set('response_type', 'id_token');
+  u.searchParams.set('scope', 'openid email profile');
+  u.searchParams.set('redirect_uri', redirectUri);
+  u.searchParams.set('nonce', nonce);
+  u.searchParams.set('prompt', 'select_account');
+  u.searchParams.set('state', join ? 'join=' + encodeURIComponent(join) : 'nojoin');
+  location.href = u.toString();
+}
+(function handleRedirectReturn(){
+  if (!location.hash || location.hash.length < 2) return;
+  const h = new URLSearchParams(location.hash.slice(1));
+  const err = h.get('error');
+  if (err) { onFail('C', err + (h.get('error_description') ? ' — ' + h.get('error_description') : '')); history.replaceState({}, '', location.pathname + location.search); return; }
+  const idt = h.get('id_token');
+  if (!idt) return;
+  const claims = decodeJwt(idt);
+  const nonceOk = claims && claims.nonce === probe.pendingNonce;
+  const st = h.get('state') || '';
+  if (st.startsWith('join=')) {
+    const j = decodeURIComponent(st.slice(5));
+    const p = new URLSearchParams(location.search); p.set('join', j);
+    history.replaceState({}, '', location.pathname + '?' + p.toString());
+    params.set('join', j);
+    renderDeep();
+  }
+  onToken('C', idt, nonceOk ? 'Nonce verified. Returned inside: <b>' + context + '</b>' : '<b style="color:var(--warn)">Nonce mismatch — check for a replay or a stale probe.</b>');
+  history.replaceState({}, '', location.pathname + location.search);
+})();
+
+/* ---- report ---- */
+function saveNotes(){
+  probe.tapCount = document.getElementById('tapCount').value;
+  probe.notes = document.getElementById('notes').value;
+  save(probe); renderReport();
+}
+function renderReport(){
+  const r = probe.results || {};
+  const rep = {
+    context, containerId: probe.containerId, visits: probe.visits,
+    ua_short: ua.slice(0, 110),
+    fedcm: ('IdentityCredential' in window), cookies: navigator.cookieEnabled, popups: popupBlocked,
+    displayModeStandalone: standaloneMedia, iosStandalone: navigator.standalone === true, twa: isTWA,
+    modeA_gisButton: r.A || 'not run',
+    modeB_oneTap: r.B || 'not run',
+    modeC_redirect: r.C || 'not run',
+    deepLink: { before: probe.deepLinkBefore || null, now: params.get('join') || null,
+                survived: probe.deepLinkBefore ? (params.get('join') === probe.deepLinkBefore) : null },
+    lastToken: probe.lastToken ? { mode: probe.lastToken.mode, subHash: probe.lastToken.subHash,
+                emailDomain: probe.lastToken.emailDomain, audOk: probe.lastToken.audOk, expMin: probe.lastToken.expMin } : null,
+    tapCount: probe.tapCount || null, notes: probe.notes || null
+  };
+  document.getElementById('report').textContent = JSON.stringify(rep, null, 1);
+}
+function copyReport(){
+  const t = document.getElementById('report').textContent;
+  const done = () => { const b = event && event.target; if (b) { const o = b.textContent; b.textContent = 'Copied'; setTimeout(()=>b.textContent = o, 1400) } };
+  if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, () => alert(t)); else alert(t);
+}
+function resetProbe(){
+  try { localStorage.removeItem(PROBE_KEY); sessionStorage.removeItem('sl_authprobe_session') } catch(e){}
+  location.href = location.pathname;
+}
+document.getElementById('tapCount').value = probe.tapCount || '';
+document.getElementById('notes').value = probe.notes || '';
+renderReport();
+
+/* load GIS last so a blocked script still leaves the page usable */
+(function(){
+  const s = document.createElement('script');
+  s.src = 'https://accounts.google.com/gsi/client';
+  s.async = true; s.defer = true;
+  s.onload = initGis;
+  s.onerror = () => { onFail('A', 'GIS script blocked'); onFail('B', 'GIS script blocked'); };
+  document.head.appendChild(s);
+})();
+</script>
+</body>
+</html>
