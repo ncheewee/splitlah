@@ -88,7 +88,13 @@ if [[ -n "${DATABASE_URL:-}" ]]; then
   echo "Using DATABASE_URL from the environment."
   node scripts/setup-auth.mjs
 else
-  echo "Paste your Neon pooled connection string (input hidden):"
+  echo "Need your Neon POOLED connection string."
+  echo "  Neon console -> your project -> Dashboard -> Connect"
+  echo "  Enable 'Connection pooling' (host then contains '-pooler') and copy."
+  echo "No connection string? Skip this and paste scripts/auth-migration.sql"
+  echo "into the Neon SQL Editor instead — same result, nothing to copy around."
+  echo
+  echo "Paste it now (input hidden, not saved anywhere):"
   read -r -s DBURL
   echo
   DATABASE_URL="$DBURL" node scripts/setup-auth.mjs
