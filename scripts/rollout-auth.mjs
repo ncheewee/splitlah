@@ -12,8 +12,8 @@ import process from 'node:process';
 import { neon } from '@neondatabase/serverless';
 
 const cmd = (process.argv[2] || 'status').toLowerCase();
-if (!['status', 'snapshot', 'enable', 'disable'].includes(cmd)) {
-  console.error('Usage: rollout-auth.mjs status|snapshot|enable|disable');
+if (!['status', 'snapshot', 'enable', 'disable', 'accounts'].includes(cmd)) {
+  console.error('Usage: rollout-auth.mjs status|accounts|snapshot|enable|disable');
   process.exit(1);
 }
 
@@ -54,6 +54,40 @@ if (cmd === 'status') {
   const gated = !!(cfg.requireAuth || cfg.authCreateOnly);
   console.log('\nSign-in is currently ' + (gated ? 'REQUIRED to create trips' : 'optional (nobody is gated)'));
   if (gated && c.legacy === 0) console.log('WARNING: gate is on but legacy_uids is empty — existing users are being gated.');
+}
+
+/* Diagnostic: what did sign-in actually record? More than one row here means
+   more than one Google account was used — the usual cause of "my trips are
+   missing on the other device". */
+if (cmd === 'accounts') {
+  const rows = await sql`select code, data, updated_at from trips where code like 'U:%' order by updated_at desc`;
+  if (!rows.length) { console.log('No accounts yet — nobody has signed in.'); process.exit(0); }
+  console.log(`${rows.length} account row(s):\n`);
+  for (const r of rows) {
+    const u = r.data || {};
+    const claims = u.claims || {};
+    console.log('sub        ', (u.sub || r.code.slice(2)).slice(0, 12) + '…');
+    console.log('email      ', u.email || '(none)');
+    console.log('name       ', u.name || '(none)');
+    console.log('uids       ', JSON.stringify(u.uids || []));
+    console.log('claims     ', Object.keys(claims).length, JSON.stringify(claims));
+    console.log('updated    ', r.updated_at);
+    // Which of those trips would actually be visible to this account?
+    for (const [code, memberId] of Object.entries(claims)) {
+      const t = await sql`select data->>'name' as name, jsonb_exists(data->'members', ${memberId}) as ok,
+                                 (data->>'deletedAt') is not null as deleted
+                          from trips where code = ${code}`;
+      const row = t[0];
+      console.log(`   ${code}  ${row ? row.name : 'MISSING FROM DB'}` +
+        (row && !row.ok ? '  <-- memberId not in this trip' : '') +
+        (row && row.deleted ? '  <-- deleted' : ''));
+    }
+    console.log('');
+  }
+  if (rows.length > 1) {
+    console.log('More than one account row. If these are meant to be the same person,');
+    console.log('two different Google accounts were used to sign in.');
+  }
 }
 
 if (cmd === 'snapshot') {
