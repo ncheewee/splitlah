@@ -49,6 +49,18 @@
     <div class="head" style="padding-bottom:18px"><button class="btn ghost" onclick="openTrip(cur.code,'balances')">Back</button><div class="h1">Settle up</div></div>
     <div class="body" style="text-align:center"><div class="check">✓</div><div class="screenTitle">Payment recorded</div><div class="muted" id="paidText" style="margin:8px 0 24px"></div><div id="paidProgress"></div><button class="btn ghost" style="width:100%" onclick="openTrip(cur.code,'dashboard')">Back to trip</button></div>
   </section>
+  <section id="gate" class="view">
+    <div class="homeHead">
+      <div class="brand">SPLITLAH <span class="vTag"></span></div>
+      <div class="h1" style="margin-top:28px">Welcome</div>
+      <div class="sub" id="gateReason">Sign in with Google to use SplitLah.</div>
+    </div>
+    <div class="body" style="text-align:center">
+      <div id="gsiBtn" style="display:flex;justify-content:center;min-height:48px;margin:28px 0"></div>
+      <p class="muted" id="gateOffline" style="display:none;color:#f08a24">You appear to be offline. Signing in needs a connection — once you are in, SplitLah works offline.</p>
+      <p class="muted" style="font-size:.73rem">We store your Google account ID and email to link your trips. Nothing is posted to your account.</p>
+    </div>
+  </section>
 </main>
 <div class="modal" id="modal"><div class="sheet"><button class="close" onclick="closeModal()">×</button><div id="modalBody"></div></div></div>
 <div class="toast" id="toast"></div>
@@ -56,7 +68,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){const th=localStorage.getItem('sl_theme');const fs=localStorage.getItem('sl_fs');if(th==='light')document.body.classList.add('light');if(fs)document.documentElement.style.setProperty('--fs',fs+'px')})();
-const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=67;
+const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=68;
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.vTag').forEach(el=>el.textContent='v'+APP_VERSION)});
 const CATS=['🍜 Food','🏨 Stay','🚌 Transport','🎡 Activities','🛍 Shopping','🌃 Nightlife','💊 Health','★ Other'];
 let dashChart='flow',expCat=7;
@@ -313,7 +325,7 @@ async function pull(c){let j=await api('/trips/'+c),t=normalizeTrip(j.trip);
   state.trips[c]=markSynced(c,t);save();return state.trips[c]}
 function go(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id===v));scrollTo(0,0)}
 function pushNav(s){if(history.state&&JSON.stringify(history.state)===JSON.stringify(s))return;history.pushState(s,'')}
-function goHome(hist=true){cur=null;go('home');renderHome();if(hist)pushNav({view:'home'})}
+function goHome(hist=true){if(loginRequired())return showAuthGate();cur=null;go('home');renderHome();if(hist)pushNav({view:'home'})}
 function me(t=cur){return (t&&state.claims?.[t.code])||state.uid}
 function visibleTrips(){return Object.values(state.trips).filter(t=>!t.deletedAt&&t.members&&t.members[me(t)])}
 function tripStatus(t){return t.status||'active'}
@@ -322,7 +334,7 @@ function toggleShowArchived(){state.showArchived=!state.showArchived;save();rend
 function isOwner(t=cur){return t&&t.ownerId===me(t)}
 function ownerName(t=cur){return t?.members?.[t.ownerId]?.name||'trip owner'}
 function tripCard(t,muted=false){let total=tripTotal(t),ms=memberList(t),st=tripStatus(t);let pill=st==='closed'?'<span class="closedPill">Closed</span>':st==='archived'?'<span class="archivedPill">Archived</span>':isOwner(t)?'<div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px"><span class="owner">Owner</span><button class="editChip" style="white-space:nowrap" onclick="event.stopPropagation();editTripCard(\''+t.code+'\')">EDIT TRIP</button></div>':'';return `<div class="card trip${muted?' tripClosed':''}" onclick="openTrip('${t.code}')"><div class="row"><div class="grow"><div class="screenTitle">${esc(t.name)}</div><div class="muted">${ms.length} members · ${(t.expenses||[]).length} expenses</div><div class="ownerLine">Started by ${esc(ownerName(t))}${t.pendingSync?' · <span style="color:#f08a24">saved on this device only</span>':''}</div></div>${pill}</div><div class="row" style="margin-top:16px"><div class="avatars">${ms.slice(0,5).map(([id,m])=>`<div class="av" style="background:${m.avatarColor}">${esc(initials(m.name))}</div>`).join('')}</div><div class="grow"></div><div class="amount">${money(total)}</div></div><div class="row" style="margin-top:10px;gap:6px;border-top:1px solid var(--line);padding-top:10px"><button class="navChip" style="font-size:.62rem" onclick="event.stopPropagation();shareTripCard('${t.code}')">SHARE</button>${isOwner(t)?`<button class="navChip" style="font-size:.62rem" onclick="event.stopPropagation();manageTripCard('${t.code}')">MANAGE</button>`:''}</div></div>`}
-function shareTripCard(code){cur=normalizeTrip(state.trips[code]);shareTrip();}function editTripCard(code){cur=normalizeTrip(state.trips[code]);openTripEdit();}function manageTripCard(code){cur=normalizeTrip(state.trips[code]);openTripManage();}function renderHome(){ $('hello').textContent='Hi, '+(state.name||'there'); let all=visibleTrips(),install=installPrompt&&!state.installDismissed?`<div class="card"><div class="row"><div class="grow"><div class="screenTitle">Install SplitLah</div><div class="muted">Add it to your home screen for a native app feel.</div></div><button class="btn" onclick="installApp()">Install</button><button class="btn ghost mini" onclick="dismissInstall()">Later</button></div></div>`:'';let active=all.filter(t=>tripStatus(t)==='active'),closed=all.filter(t=>tripStatus(t)==='closed'),archived=all.filter(t=>tripStatus(t)==='archived');let out=install;if(!all.length){out+='<div class="card muted">No trips yet. Create a trip to get started.</div><button class="btn ghost" style="width:100%;margin-top:8px" onclick="openRestoreEntry()">Already joined a trip? Restore with code</button>'}else{out+=active.map(t=>tripCard(t,false)).join('');out+=closed.map(t=>tripCard(t,true)).join('');if(archived.length){out+=`<button class="archivedToggle" onclick="toggleShowArchived()">${state.showArchived?'▾':'▸'} Archived (${archived.length})</button>`;if(state.showArchived)out+=archived.map(t=>tripCard(t,true)).join('')}}$('tripList').innerHTML=out}
+function shareTripCard(code){cur=normalizeTrip(state.trips[code]);shareTrip();}function editTripCard(code){cur=normalizeTrip(state.trips[code]);openTripEdit();}function manageTripCard(code){cur=normalizeTrip(state.trips[code]);openTripManage();}function renderHome(){ if(loginRequired())return showAuthGate(); $('hello').textContent='Hi, '+(state.name||'there'); let all=visibleTrips(),install=installPrompt&&!state.installDismissed?`<div class="card"><div class="row"><div class="grow"><div class="screenTitle">Install SplitLah</div><div class="muted">Add it to your home screen for a native app feel.</div></div><button class="btn" onclick="installApp()">Install</button><button class="btn ghost mini" onclick="dismissInstall()">Later</button></div></div>`:'';let active=all.filter(t=>tripStatus(t)==='active'),closed=all.filter(t=>tripStatus(t)==='closed'),archived=all.filter(t=>tripStatus(t)==='archived');let out=install;if(!all.length){out+='<div class="card muted">No trips yet. Create a trip to get started.</div><button class="btn ghost" style="width:100%;margin-top:8px" onclick="openRestoreEntry()">Already joined a trip? Restore with code</button>'}else{out+=active.map(t=>tripCard(t,false)).join('');out+=closed.map(t=>tripCard(t,true)).join('');if(archived.length){out+=`<button class="archivedToggle" onclick="toggleShowArchived()">${state.showArchived?'▾':'▸'} Archived (${archived.length})</button>`;if(state.showArchived)out+=archived.map(t=>tripCard(t,true)).join('')}}$('tripList').innerHTML=out}
 function openNewTrip(){modal(`<h2>New trip</h2><input class="field" id="ntName" placeholder="Weekend trip"><div style="height:10px"></div>${selectWrap('ntCur',ccyOptions(),'',true)}<div style="height:10px"></div><button class="btn" style="width:100%" onclick="createTrip()">Create trip</button>`);setTimeout(()=>{const s=document.querySelector('#modal .sheet');if(s)s.style.overflow='visible';},15);}
 function createTrip(){let name=$('ntName').value.trim();if(!name)return toast('Trip name needed');if(!state.name)return openSettings(true);
   if(createNeedsAuth()){closeModal();return openSignIn('Sign in to create a trip. Your existing trips are unaffected.')}let c=code(),id=state.uid;let t={id:uid(),code:c,name,currency:$('ntCur').value.trim().toUpperCase()||'SGD',ownerId:id,members:{[id]:{name:state.name,avatarColor:colors[0],paynowProxy:normalizePayNowProxy(state.paynowProxy)}},expenses:[],settlements:[],updated_at:new Date().toISOString()};closeModal();push(t);openTrip(c,'members');setTimeout(promptAddFirstMember,400)}
@@ -362,42 +374,44 @@ function loadGis(){return new Promise((res,rej)=>{
   document.head.appendChild(s)})}
 function ssoRequired(){return loginRequired()||!!authCfg().ssoOnboarding}
 let onboardingFlow=false;
-/* Shared by the sign-in modal and first-run onboarding. The Google button needs
-   third-party cookies to deliver its credential; where those are blocked the
-   chooser appears and then nothing happens, so the redirect fallback is offered
-   after a few seconds or immediately if the script cannot load. */
-async function mountGoogleButton(){
+function googleContinueLabel(){
+  let hint=state.authHint||(state.auth&&state.auth.email)||'';
+  return hint?'Continue as '+hint.split('@')[0]:'Continue with Google'}
+function paintGoogleContinue(msg){
+  let el=$('gsiBtn');if(!el)return;
+  el.innerHTML=`<button class="btn" id="gsiContinue" style="width:100%;max-width:280px" onclick="startGoogleSignIn()">${esc(googleContinueLabel())}</button>`+
+    (msg?`<p class="muted" style="margin-top:12px;font-size:.78rem">${esc(msg)}</p>`:'')}
+async function startGoogleSignIn(){
   let c=authCfg();
   if(!c.clientId)c=await refreshConfig()||{};
-  if(!c.clientId){let el=$('gsiBtn');if(el)el.innerHTML='<div class="muted">Sign-in is not configured yet</div>';return}
-  setTimeout(showRedirectFallback,6000);
-  try{await loadGis();
-    google.accounts.id.initialize({client_id:c.clientId,callback:r=>completeSignIn(r.credential),auto_select:true,cancel_on_tap_outside:true,use_fedcm_for_prompt:true,itp_support:true,context:'signin',login_hint:state.authHint||undefined});
-    google.accounts.id.renderButton($('gsiBtn'),{theme:'filled_black',size:'large',width:260,text:'signin_with'});
-    /* One Tap / FedCM is the 1-click path. renderButton showing a name and then
-       opening a chooser is normal GIS button behaviour — prompt() is what can
-       skip the second step for a returning account. */
-    try{google.accounts.id.prompt()}catch(e){}}
-  catch(e){let el=$('gsiBtn');if(el)el.innerHTML='<div class="muted">'+esc(e.message)+'</div>';showRedirectFallback()}}
+  if(!c.clientId)return toast('Sign-in is not configured yet');
+  try{
+    await loadGis();
+    google.accounts.id.initialize({client_id:c.clientId,callback:r=>completeSignIn(r.credential),auto_select:true,cancel_on_tap_outside:false,use_fedcm_for_prompt:true,itp_support:true,context:'signin',login_hint:state.authHint||undefined});
+    /* One Tap / FedCM with auto_select is the 1-click path. Do not use
+       renderButton — that control shows the last account then opens a chooser. */
+    google.accounts.id.prompt(n=>{
+      if(n&&(n.isNotDisplayed()||n.isSkippedMoment()))paintGoogleContinue('Tap continue to sign in');
+    })}
+  catch(e){paintGoogleContinue(e.message||'Google sign-in is unavailable')}}
+async function mountGoogleButton(){await startGoogleSignIn()}
 async function openSignIn(reason){
-  if(loginRequired())return openOnboarding(reason);
-  modal(`<h2>Sign in</h2><p class="muted">${esc(reason||'Sign in with Google so your trips can be restored on any device.')}</p><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><div id="gsiAlt"></div><p class="muted" style="font-size:.75rem">SplitLah stores your Google account ID and email to link your trips. Nothing is posted to your account.</p><button class="btn ghost" style="width:100%" onclick="closeModal()">Not now</button>`,true);
-  await mountGoogleButton()}
-/* Sign-up and logged-out both need a connection; using the app afterwards does not. */
+  if(loginRequired())return showAuthGate(reason);
+  modal(`<h2>Sign in</h2><p class="muted">${esc(reason||'Sign in with Google so your trips can be restored on any device.')}</p><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><p class="muted" style="font-size:.75rem">SplitLah stores your Google account ID and email to link your trips. Nothing is posted to your account.</p><button class="btn ghost" style="width:100%" onclick="closeModal()">Not now</button>`,true);
+  await startGoogleSignIn()}
+function showAuthGate(reason){
+  onboardingFlow=true;
+  cur=null;
+  closeModal();
+  let r=$('gateReason');if(r)r.textContent=reason||'Sign in with Google to use SplitLah. Your trips stay with your account.';
+  let off=$('gateOffline');if(off)off.style.display=navigator.onLine===false?'block':'none';
+  paintGoogleContinue();
+  go('gate');
+  startGoogleSignIn()}
 async function openOnboarding(reason){
   if(!authCfg().clientId)await refreshConfig();
   if(!loginRequired()&&!ssoRequired())return openSettings(true);
-  onboardingFlow=true;
-  let offline=navigator.onLine===false;
-  modal(`<div style="text-align:center;padding:4px 0">
-    <div style="font-size:1.15rem;font-weight:800;margin-bottom:8px">Welcome to SplitLah</div>
-    <p class="muted" style="margin:0 0 20px">${esc(reason||'Sign in with Google to use SplitLah. Your trips stay with your account.')}</p>
-    <div id="gsiBtn" style="display:flex;justify-content:center;min-height:44px"></div>
-    <div id="gsiAlt" style="margin-top:14px"></div>
-    ${offline?'<p style="color:#f08a24;font-size:.82rem;margin-top:14px">You appear to be offline. Signing in needs a connection — once you are in, SplitLah works offline.</p>':''}
-    <p class="muted" style="font-size:.73rem;margin-top:18px">We store your Google account ID and email to link your trips. Nothing is posted to your account.</p>
-  </div>`,true,true);
-  await mountGoogleButton()}
+  showAuthGate(reason)}
 function openPayNowStep(){
   modal(`<h2>Add your PayNow?</h2><p class="muted">So friends can pay you back in one tap. Optional — you can add it later in Edit profile.</p><input class="field" id="obPayNow" inputmode="tel" placeholder="+65 mobile or NRIC" value="${esc(state.paynowProxy||'')}"><div style="height:12px"></div><button class="btn" style="width:100%" onclick="savePayNowStep()">Save</button><button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal();goHome()">Skip for now</button>`,true)}
 function savePayNowStep(){
@@ -406,25 +420,6 @@ function savePayNowStep(){
     if(!t.deletedAt&&t.members&&t.members[id]){t.members[id].paynowProxy=state.paynowProxy;t.members[id].updatedAt=new Date().toISOString();touched.push(t)}});
   closeModal();goHome();toast(state.paynowProxy?'PayNow saved':'Skipped');
   touched.forEach(t=>push(t))}
-function showRedirectFallback(){let el=$('gsiAlt');
-  if(!el||el.dataset.shown)return;el.dataset.shown='1';
-  el.innerHTML='<button class="btn ghost mini" style="width:100%;margin-bottom:8px" onclick="beginRedirectSignIn(false)">Nothing happening? Sign in another way</button><button class="btn ghost mini" style="width:100%;margin-bottom:12px" onclick="beginRedirectSignIn(true)">Use another Google account</button>'}
-function googleAuthUrl(nonce,pickAccount=false){
-  let c=authCfg(),u=new URL('https://accounts.google.com/o/oauth2/v2/auth'),join=params.get('join')||state.pendingInvite?.code||'';
-  u.searchParams.set('client_id',c.clientId||'');
-  u.searchParams.set('response_type','id_token');
-  u.searchParams.set('scope','openid email profile');
-  u.searchParams.set('redirect_uri',location.origin+location.pathname);
-  u.searchParams.set('nonce',nonce);
-  if(pickAccount)u.searchParams.set('prompt','select_account');
-  if(state.authHint&&!pickAccount)u.searchParams.set('login_hint',state.authHint);
-  u.searchParams.set('state',join?'join='+encodeURIComponent(join):'none');
-  return u.toString()}
-function beginRedirectSignIn(pickAccount=false){
-  let c=authCfg();if(!c.clientId)return toast('Sign-in is not configured yet');
-  let nonce='n_'+Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2);
-  state.authNonce=nonce;save();
-  location.href=googleAuthUrl(nonce,pickAccount)}
 function decodeJwtPayload(t){try{
   let p=String(t).split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
   p+='='.repeat((4-(p.length%4))%4);
@@ -460,25 +455,25 @@ async function completeSignIn(idToken){
       if(!state.claims[code])state.claims[code]=memberId;
       if(!state.trips[code]){try{await pull(code);added++}catch(e){/* keep going; nothing is deleted */}}}
     save();await refreshConfig();closeModal();
+    let fromGate=onboardingFlow;onboardingFlow=false;
     toast(added?('Signed in — '+added+' trip'+(added===1?'':'s')+' restored'):'Signed in as '+(r.email||state.name||'you'));
-    flushOutbox();cur?renderTrip():renderHome();
+    flushOutbox();go('home');renderHome();
     if(state.pendingInvite&&state.pendingInvite.code){let pi=state.pendingInvite;setTimeout(()=>openInvite(pi.code,pi.memberId||''),250)}
-    else if(onboardingFlow&&!state.paynowProxy){onboardingFlow=false;setTimeout(openPayNowStep,250)}
-    else onboardingFlow=false}
+    else if(fromGate&&!state.paynowProxy)setTimeout(openPayNowStep,250)}
   catch(e){toast('Sign-in failed: '+e.message)}}
 function signOut(){
   modal(`<h2>Sign out?</h2><p class="muted">You'll need to sign in again to use SplitLah. Your trips stay on this device and come back with your Google account.</p><button class="btn" style="width:100%" onclick="confirmSignOut()">Sign out</button><button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal()">Cancel</button>`,true)}
 function confirmSignOut(){
   if(state.auth&&state.auth.email)state.authHint=state.auth.email;
-  delete state.auth;save();cur=null;go('home');renderHome();closeModal();
-  if(loginRequired())openOnboarding('Sign in to use SplitLah.');
-  else toast('Signed out')}
+  delete state.auth;save();cur=null;closeModal();
+  if(loginRequired())showAuthGate('Sign in to use SplitLah.');
+  else{go('home');renderHome();toast('Signed out')}}
 function deleteAccount(){
   modal(`<h2>Delete account?</h2><p class="muted">This removes your SplitLah account and the link to your trips. Trips themselves are shared with other members and are not deleted. Your trips stay on this device.</p><button class="btn" style="width:100%;background:#c94a38" onclick="confirmDeleteAccount()">Delete my account</button><button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal()">Cancel</button>`,true)}
 async function confirmDeleteAccount(){
-  try{await api('/auth/account','DELETE');if(state.auth&&state.auth.email)state.authHint=state.auth.email;delete state.auth;save();cur=null;go('home');renderHome();closeModal();
-    if(loginRequired())openOnboarding('Sign in to use SplitLah.');
-    else toast('Account deleted')}
+  try{await api('/auth/account','DELETE');if(state.auth&&state.auth.email)state.authHint=state.auth.email;delete state.auth;save();cur=null;closeModal();
+    if(loginRequired())showAuthGate('Sign in to use SplitLah.');
+    else{go('home');renderHome();toast('Account deleted')}}
   catch(e){toast('Could not delete account: '+e.message)}}
 /* ---- version + update check (v58) -----------------------------------------
    A stale service worker can serve an old shell for days, and until now there
@@ -772,12 +767,12 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 function modal(html,center=false,sticky=false){$('modalBody').innerHTML=html;$('modal').classList.toggle('center',center);
   let x=document.querySelector('#modal .close');if(x)x.style.display=sticky?'none':'';
   $('modal').classList.add('on')} function closeModal(){$('modal').classList.remove('on')}
-window.addEventListener('popstate',e=>{if(loginRequired()){openOnboarding();return}let s=e.state||{view:'home'};if($('modal').classList.contains('on'))closeModal();if(s.view==='home')return goHome(false);if(s.code){if(!state.trips[s.code])return goHome(false);openTrip(s.code,s.tab||'dashboard',false)}});
+window.addEventListener('popstate',e=>{if(loginRequired()){showAuthGate();return}let s=e.state||{view:'home'};if($('modal').classList.contains('on'))closeModal();if(s.view==='home')return goHome(false);if(s.code){if(!state.trips[s.code])return goHome(false);openTrip(s.code,s.tab||'dashboard',false)}});
 function setTheme(t){document.body.classList.toggle('light',t==='light');localStorage.setItem('sl_theme',t);const b1=$('btnDark'),b2=$('btnLight');if(b1)b1.classList.toggle('on',t==='dark');if(b2)b2.classList.toggle('on',t==='light')}function setFontSize(v){v=Math.max(12,Math.min(18,+v));document.documentElement.style.setProperty('--fs',v+'px');localStorage.setItem('sl_fs',v);const lbl=$('fsLabel');if(lbl)lbl.textContent=v+'px'}async function uploadReceipt(dataUrl){const key=state.imagekitKey,url=state.imagekitUrl;if(!key||!url)return dataUrl;try{const blob=await(await fetch(dataUrl)).blob();const fd=new FormData();const name='receipt_'+Date.now()+'.jpg';fd.append('file',blob,name);fd.append('fileName',name);fd.append('publicKey',key);const r=await fetch('https://upload.imagekit.io/api/v1/files/upload',{method:'POST',body:fd});const j=await r.json();if(!r.ok)throw Error(j.message||'Upload failed');return j.url}catch(e){console.warn('ImageKit:',e.message);return dataUrl}}function renderSpendChart(){const exps=cur.expenses||[];if(!exps.length)return '<div class="muted" style="padding:20px 0;text-align:center">No expenses yet.</div>';const byDay={};exps.forEach(e=>{const d=(e.at||'').slice(0,10)||'?';byDay[d]=(byDay[d]||0)+(+e.amount||0)});const days=Object.keys(byDay).sort();if(!days.length)return '<div class="muted" style="padding:20px 0;text-align:center">No dated expenses.</div>';const MONTH_ABB=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];const labels=days.map(d=>{const p=d.split('-');return p[2]+' '+MONTH_ABB[+p[1]-1];});const vals=days.map(d=>+byDay[d].toFixed(2));const id='sc'+Math.random().toString(36).slice(2,7);const light=document.body.classList.contains('light');const gc=light?'rgba(0,0,0,.07)':'rgba(255,255,255,.07)';const tc=light?'#6b6b65':'#b8b7af';setTimeout(()=>{const ctx=document.getElementById(id)?.getContext('2d');if(!ctx||!window.Chart)return;new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:vals,backgroundColor:'#1d9e75',borderRadius:5,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'S$'+c.parsed.y.toFixed(2)}}},scales:{y:{beginAtZero:true,grid:{color:gc},ticks:{color:tc,callback:v=>'S$'+v}},x:{grid:{display:false},ticks:{color:tc}}}}})},60);return `<div class="card"><canvas id="${id}" height="90"></canvas></div>`}
 renderHome();if(handleAuthRedirect()){/* returning from Google */}
 else if(loginRequired()){
   if(joinParam){state.pendingInvite={code:joinParam.toUpperCase(),memberId:memberParam||'',at:Date.now()};save()}
-  setTimeout(()=>openOnboarding(),80)}
+  setTimeout(()=>showAuthGate(),80)}
 else if(restoreParam){let _rt=restoreParam;try{let _u=new URL(location.href);_u.searchParams.delete('restore');history.replaceState({},'',_u.pathname+(_u.search||'')+_u.hash)}catch(e){}setTimeout(()=>applyRestoreToken(_rt),150)}else if(adminParam==='feedback')setTimeout(openAdminFeedback,100);else if(adminParam==='summary')setTimeout(openAdminSummary,100);else if(adminParam==='dashboard')setTimeout(openAdminDashboard,100);else if(joinParam)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),100);else if(state.pendingInvite?.code)setTimeout(()=>openInvite(state.pendingInvite.code,state.pendingInvite.memberId||''),100);else if(!state.onboarded)setTimeout(()=>openOnboarding(),100);
 setInterval(()=>{if(cur&&!$('modal').classList.contains('on')&&!activeFormDirty())refreshTrip(true)},12000);
 /* v57: keep unsent trips moving — retry on reconnect, on focus, and on a slow timer */

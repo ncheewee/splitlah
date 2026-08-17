@@ -271,20 +271,15 @@ function makeEnvLastServerHas() { return true; }
     sub:'sub_1', email:'me@gmail.com', email_verified:true, name:'Chee Wee', nonce:n,
     exp:Math.floor(Date.now()/1000)+3600 }) + '.s';
 
-  // the modal offers the fallback, and the URL it builds is a proper OIDC request
+  // redirect fallback is gone — Google GIS only
   {
     const { w, ev } = makeEnv({});
     await sleep(150);
-    ev('openSignIn()'); await sleep(120);
-    ev('showRedirectFallback()');
-    ok('fallback button offered', /beginRedirectSignIn/.test(w.document.getElementById('modal').innerHTML));
-    const url = ev('googleAuthUrl("n_test")');
-    ok('targets Google OAuth', /^https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth/.test(url), url.slice(0, 60));
-    ok('uses id_token response type', /response_type=id_token/.test(url));
-    ok('carries the nonce', /nonce=n_test/.test(url));
-    ok('returning user is not forced through the chooser', !/prompt=select_account/.test(url));
-    ok('another-account path still offers the chooser', /prompt=select_account/.test(ev('googleAuthUrl("n_test", true)')));
-    ok('returns to the app itself', url.includes(encodeURIComponent('https://splitlah.example/splitlah/')));
+    ev('showAuthGate()'); await sleep(80);
+    ok('no redirect fallback', !/beginRedirectSignIn|Nothing happening/i.test(w.document.body.innerHTML));
+    ok('redirect helper removed', ev('typeof googleAuthUrl') === 'undefined');
+    ok('gate view is showing', w.document.getElementById('gate').classList.contains('on'));
+    ok('home is not showing behind the gate', !w.document.getElementById('home').classList.contains('on'));
   }
 
   // returning with a matching nonce completes sign-in
@@ -342,11 +337,11 @@ function makeEnvLastServerHas() { return true; }
     const { w, ev } = makeEnv({ config: { ssoOnboarding: true } });
     await sleep(250);
     ev('openOnboarding()'); await sleep(200);
-    const h = w.document.getElementById('modal').innerHTML;
+    const h = w.document.getElementById('gate').innerHTML;
     ok('no name field on first run', !/id=.setName./.test(h));
     ok('no PayNow field on first run', !/id=.setPayNow./.test(h));
     ok('offers Google sign-in', /gsiBtn/.test(h));
-    ok('cannot be dismissed', w.document.querySelector('#modal .close').style.display === 'none');
+    ok('gate replaces the app, not a modal', w.document.getElementById('gate').classList.contains('on') && !w.document.getElementById('home').classList.contains('on'));
     ok('loginRequired when logged out', ev('loginRequired()') === true);
   }
 
@@ -355,7 +350,7 @@ function makeEnvLastServerHas() { return true; }
     const { w, ev } = makeEnv({ config: { ssoOnboarding: true }, offline: true });
     await sleep(250);
     ev('openOnboarding()'); await sleep(200);
-    ok('offline is explained', /offline/i.test(w.document.getElementById('modal').innerHTML));
+    ok('offline is explained', /offline/i.test(w.document.getElementById('gateOffline').textContent) && w.document.getElementById('gateOffline').style.display !== 'none');
   }
 
   // invite arrivals must sign in first, and the invite resumes afterwards
@@ -366,7 +361,7 @@ function makeEnvLastServerHas() { return true; }
       config: { ssoOnboarding: true } });
     await sleep(250);
     ev('openInvite("OYL1X3")'); await sleep(250);
-    ok('invitee is asked to sign in first', /gsiBtn/.test(w.document.getElementById('modal').innerHTML));
+    ok('invitee is asked to sign in first', w.document.getElementById('gate').classList.contains('on'));
     ok('the invite is remembered', st().pendingInvite && st().pendingInvite.code === 'OYL1X3');
     await ev('completeSignIn("GOOD")'); await sleep(500);
     ok('join flow resumes after sign-in', /JB Shenanigans/.test(w.document.getElementById('modal').innerHTML),
@@ -399,8 +394,8 @@ function makeEnvLastServerHas() { return true; }
     ok('hint kept for 1-click return', st().authHint === 'me@gmail.com');
     ok('session cleared', !st().auth);
     ok('trips still on the device', !!st().trips['AES5K8']);
-    ok('login wall after sign-out', /gsiBtn/.test(w.document.getElementById('modal').innerHTML));
-    ok('wall cannot be dismissed', w.document.querySelector('#modal .close').style.display === 'none');
+    ok('login wall after sign-out', w.document.getElementById('gate').classList.contains('on'));
+    ok('signed-in home is not behind the gate', !w.document.getElementById('home').classList.contains('on'));
   }
 }
 
