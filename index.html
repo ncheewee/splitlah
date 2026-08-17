@@ -52,13 +52,12 @@
   <section id="gate" class="view">
     <div class="homeHead">
       <div class="brand">SPLITLAH <span class="vTag"></span></div>
-      <div class="h1" style="margin-top:28px">Welcome</div>
-      <div class="sub" id="gateReason">Sign in with Google to use SplitLah.</div>
+      <div class="h1" style="margin-top:36px">Welcome</div>
     </div>
     <div class="body" style="text-align:center">
-      <div id="gsiBtn" style="display:flex;justify-content:center;min-height:48px;margin:28px 0"></div>
-      <p class="muted" id="gateOffline" style="display:none;color:#f08a24">You appear to be offline. Signing in needs a connection — once you are in, SplitLah works offline.</p>
-      <p class="muted" style="font-size:.73rem">We store your Google account ID and email to link your trips. Nothing is posted to your account.</p>
+      <div id="gsiBtn" style="display:flex;justify-content:center;min-height:44px;margin:32px 0 10px"></div>
+      <button type="button" id="gsiOther" class="muted" style="display:none;border:0;background:none;font-size:.78rem;font-weight:700" onclick="useAnotherGoogleAccount()">Use another account</button>
+      <p class="muted" id="gateOffline" style="display:none;color:#f08a24;margin-top:18px">Offline — connect to sign in</p>
     </div>
   </section>
 </main>
@@ -68,7 +67,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){const th=localStorage.getItem('sl_theme');const fs=localStorage.getItem('sl_fs');if(th==='light')document.body.classList.add('light');if(fs)document.documentElement.style.setProperty('--fs',fs+'px')})();
-const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=68;
+const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=69;
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.vTag').forEach(el=>el.textContent='v'+APP_VERSION)});
 const CATS=['🍜 Food','🏨 Stay','🚌 Transport','🎡 Activities','🛍 Shopping','🌃 Nightlife','💊 Health','★ Other'];
 let dashChart='flow',expCat=7;
@@ -374,38 +373,32 @@ function loadGis(){return new Promise((res,rej)=>{
   document.head.appendChild(s)})}
 function ssoRequired(){return loginRequired()||!!authCfg().ssoOnboarding}
 let onboardingFlow=false;
-function googleContinueLabel(){
-  let hint=state.authHint||(state.auth&&state.auth.email)||'';
-  return hint?'Continue as '+hint.split('@')[0]:'Continue with Google'}
-function paintGoogleContinue(msg){
-  let el=$('gsiBtn');if(!el)return;
-  el.innerHTML=`<button class="btn" id="gsiContinue" style="width:100%;max-width:280px" onclick="startGoogleSignIn()">${esc(googleContinueLabel())}</button>`+
-    (msg?`<p class="muted" style="margin-top:12px;font-size:.78rem">${esc(msg)}</p>`:'')}
-async function startGoogleSignIn(){
+function gsiTheme(){return document.body.classList.contains('light')?'outline':'filled_black'}
+function showGsiOther(on){let el=$('gsiOther');if(el)el.style.display=on?'inline':'none'}
+async function startGoogleSignIn(pickOther=false){
   let c=authCfg();
   if(!c.clientId)c=await refreshConfig()||{};
-  if(!c.clientId)return toast('Sign-in is not configured yet');
+  let host=$('gsiBtn');
+  if(!c.clientId){if(host)host.innerHTML='';showGsiOther(false);return}
   try{
     await loadGis();
-    google.accounts.id.initialize({client_id:c.clientId,callback:r=>completeSignIn(r.credential),auto_select:true,cancel_on_tap_outside:false,use_fedcm_for_prompt:true,itp_support:true,context:'signin',login_hint:state.authHint||undefined});
-    /* One Tap / FedCM with auto_select is the 1-click path. Do not use
-       renderButton — that control shows the last account then opens a chooser. */
-    google.accounts.id.prompt(n=>{
-      if(n&&(n.isNotDisplayed()||n.isSkippedMoment()))paintGoogleContinue('Tap continue to sign in');
-    })}
-  catch(e){paintGoogleContinue(e.message||'Google sign-in is unavailable')}}
+    if(pickOther)try{google.accounts.id.disableAutoSelect()}catch(e){}
+    google.accounts.id.initialize({client_id:c.clientId,callback:r=>completeSignIn(r.credential),auto_select:!pickOther,cancel_on_tap_outside:false,use_fedcm_for_prompt:true,itp_support:true,context:'signin',login_hint:pickOther?undefined:(state.authHint||undefined)});
+    if(host){host.innerHTML='';google.accounts.id.renderButton(host,{type:'standard',theme:gsiTheme(),size:'large',text:'continue_with',shape:'pill',logo_alignment:'left',width:280})}
+    showGsiOther(true);
+    if(!pickOther)try{google.accounts.id.prompt()}catch(e){}}
+  catch(e){if(host)host.innerHTML='';showGsiOther(false)}}
+function useAnotherGoogleAccount(){startGoogleSignIn(true)}
 async function mountGoogleButton(){await startGoogleSignIn()}
 async function openSignIn(reason){
   if(loginRequired())return showAuthGate(reason);
-  modal(`<h2>Sign in</h2><p class="muted">${esc(reason||'Sign in with Google so your trips can be restored on any device.')}</p><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><p class="muted" style="font-size:.75rem">SplitLah stores your Google account ID and email to link your trips. Nothing is posted to your account.</p><button class="btn ghost" style="width:100%" onclick="closeModal()">Not now</button>`,true);
+  modal(`<h2>Sign in</h2><div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px"></div><button type="button" id="gsiOther" class="muted" style="display:none;border:0;background:none;width:100%;font-size:.78rem;font-weight:700" onclick="useAnotherGoogleAccount()">Use another account</button><button class="btn ghost" style="width:100%;margin-top:16px" onclick="closeModal()">Not now</button>`,true);
   await startGoogleSignIn()}
 function showAuthGate(reason){
   onboardingFlow=true;
   cur=null;
   closeModal();
-  let r=$('gateReason');if(r)r.textContent=reason||'Sign in with Google to use SplitLah. Your trips stay with your account.';
   let off=$('gateOffline');if(off)off.style.display=navigator.onLine===false?'block':'none';
-  paintGoogleContinue();
   go('gate');
   startGoogleSignIn()}
 async function openOnboarding(reason){
