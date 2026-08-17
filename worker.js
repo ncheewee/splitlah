@@ -161,9 +161,10 @@ const RESERVED_CODES = new Set([FEEDBACK_CODE, RESTORE_CODE, CONFIG_CODE]);
 const SESSION_DAYS = 90;
 
 const CONFIG_DEFAULTS = {
-  requireAuth: false,      // hard gate on the whole app — leave false
-  authCreateOnly: false,   // require sign-in to create a NEW trip
-  ssoOnboarding: false,    // first run and invite joins require Google sign-in
+  requireAuth: false,      // server: reject unauthenticated trip creates
+  authCreateOnly: false,   // server: require sign-in to create a NEW trip
+  ssoOnboarding: false,    // kept for older clients; v67 uses the login wall
+  allowAnonymous: false,   // v67 kill switch — true unlocks the logged-out UI
   clientId: '',
   minVersion: 57
 };
@@ -588,6 +589,7 @@ export default {
           requireAuth: !!cfg.requireAuth,
           authCreateOnly: !!cfg.authCreateOnly,
           ssoOnboarding: !!cfg.ssoOnboarding,
+          allowAnonymous: !!cfg.allowAnonymous,
           clientId: cfg.clientId || '',
           minVersion: cfg.minVersion || 0,
           legacy

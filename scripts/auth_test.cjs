@@ -173,7 +173,7 @@ function makeEnvLastServerHas() { return true; }
 /* 7. Legacy users are not gated. */
 {
   console.log('\n[7] Legacy user creates a trip without signing in');
-  const { ev, st } = makeEnv({ config: { authCreateOnly: true, legacy: true } });
+  const { ev, st } = makeEnv({ config: { authCreateOnly: true, legacy: true, allowAnonymous: true } });
   await sleep(150);
   ok('client does not demand sign-in', ev('createNeedsAuth()') === false);
   ev('state.name="Chee Wee";state.onboarded=true');
@@ -187,7 +187,7 @@ function makeEnvLastServerHas() { return true; }
 /* 8. Kill switch: config off means no gate at all. */
 {
   console.log('\n[8] Kill switch restores open access');
-  const { ev } = makeEnv({ config: { authCreateOnly: false, requireAuth: false } });
+  const { ev } = makeEnv({ config: { authCreateOnly: false, requireAuth: false, allowAnonymous: true } });
   await sleep(150);
   ok('no sign-in required when disabled', ev('createNeedsAuth()') === false);
 }
@@ -282,7 +282,8 @@ function makeEnvLastServerHas() { return true; }
     ok('targets Google OAuth', /^https:\/\/accounts\.google\.com\/o\/oauth2\/v2\/auth/.test(url), url.slice(0, 60));
     ok('uses id_token response type', /response_type=id_token/.test(url));
     ok('carries the nonce', /nonce=n_test/.test(url));
-    ok('asks which account', /prompt=select_account/.test(url));
+    ok('returning user is not forced through the chooser', !/prompt=select_account/.test(url));
+    ok('another-account path still offers the chooser', /prompt=select_account/.test(ev('googleAuthUrl("n_test", true)')));
     ok('returns to the app itself', url.includes(encodeURIComponent('https://splitlah.example/splitlah/')));
   }
 
@@ -327,16 +328,16 @@ function makeEnvLastServerHas() { return true; }
 {
   console.log('\n[14] Google-only onboarding');
 
-  // flag OFF: unchanged first-run behaviour
+  // kill switch: anonymous start still available
   {
-    const { w, ev } = makeEnv({ config: { ssoOnboarding: false } });
+    const { w, ev } = makeEnv({ config: { allowAnonymous: true, ssoOnboarding: false } });
     await sleep(250);
-    ok('name-only start still available when flag is off', ev('ssoRequired()') === false);
+    ok('name-only start still available when unlocked', ev('ssoRequired()') === false);
     ev('openOnboarding()'); await sleep(150);
     ok('falls back to the profile form', /setName/.test(w.document.getElementById('modal').innerHTML));
   }
 
-  // flag ON: no name field, no PayNow field, no dismiss
+  // v67 default: logged-out is a Google-only wall
   {
     const { w, ev } = makeEnv({ config: { ssoOnboarding: true } });
     await sleep(250);
@@ -346,6 +347,7 @@ function makeEnvLastServerHas() { return true; }
     ok('no PayNow field on first run', !/id=.setPayNow./.test(h));
     ok('offers Google sign-in', /gsiBtn/.test(h));
     ok('cannot be dismissed', w.document.querySelector('#modal .close').style.display === 'none');
+    ok('loginRequired when logged out', ev('loginRequired()') === true);
   }
 
   // offline is explained rather than silently broken
@@ -382,6 +384,23 @@ function makeEnvLastServerHas() { return true; }
     ok('it is skippable', /Skip for now/.test(h));
     ev('state.paynowProxy="";closeModal()');
     ok('onboarded regardless', st().onboarded === true);
+  }
+
+  // sign-out returns to the login wall and keeps local trips
+  {
+    const seed = { uid:'u_p', name:'Chee Wee', onboarded:true, appVersion:67, trips:{
+      AES5K8:{ code:'AES5K8', name:'Kuantan', currency:'SGD', ownerId:'u_p',
+        members:{ u_p:{name:'Chee Wee'} }, expenses:[], settlements:[] }
+    }, claims:{ AES5K8:'u_p' }, auth:{ sessionToken:'sess_1', email:'me@gmail.com' } };
+    const { w, ev, st } = makeEnv({ storage:{ 'sl_codex_v1': J(seed) } });
+    await sleep(200);
+    ok('signed-in user is not gated', ev('loginRequired()') === false);
+    ev('confirmSignOut()'); await sleep(200);
+    ok('hint kept for 1-click return', st().authHint === 'me@gmail.com');
+    ok('session cleared', !st().auth);
+    ok('trips still on the device', !!st().trips['AES5K8']);
+    ok('login wall after sign-out', /gsiBtn/.test(w.document.getElementById('modal').innerHTML));
+    ok('wall cannot be dismissed', w.document.querySelector('#modal .close').style.display === 'none');
   }
 }
 

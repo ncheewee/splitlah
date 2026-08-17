@@ -1,6 +1,6 @@
 # SplitLah — Google sign-in design
 
-Status: implemented in v62 (unenforced) · Aug 2026
+Status: v67 Google-only wall when logged out · Aug 2026
 
 ## Goal
 
@@ -134,9 +134,9 @@ When on, a **new** user sees one screen: Welcome + Continue with Google. No name
 
 **Scope: sign-UP requires a connection, using the app does not.** A signed-in user with no signal must still open SplitLah and add expenses — that is what the v57 outbox exists for. Gating the app itself on connectivity would recreate the Kuantan failure behind a nicer screen. Only first run and invite joins need the network.
 
-Existing users are untouched: the flag is only consulted when there is no local identity yet.
+**v67 — logged-out is a Google-only wall.** Sign-out and account delete return to the same sticky Welcome + Google screen. Local trips stay on the device and come back after sign-in. A signed-in user with no signal can still use the app (the v57 outbox). Kill switch: `CONFIG.allowAnonymous = true` via `rollout-auth.mjs unlock` (no client redeploy once the v67 Worker is live). Old `requireAuth: false` does not unlock this wall — that was the previous default.
 
-Accepted cost, deliberately: someone without a Google account cannot start, and neither can someone with no signal. Chee Wee chose tighter UX over reach. "Restore identity from another device" stays in Edit profile as the fallback for the no-Google case.
+Accepted cost, deliberately: someone without a Google account cannot start, and neither can someone with no signal. Chee Wee chose tighter UX over reach. "Restore identity from another device" stays in Edit profile after sign-in.
 
 ## Rollout
 

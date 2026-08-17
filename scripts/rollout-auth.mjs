@@ -12,8 +12,8 @@ import process from 'node:process';
 import { neon } from '@neondatabase/serverless';
 
 const cmd = (process.argv[2] || 'status').toLowerCase();
-if (!['status', 'snapshot', 'enable', 'disable', 'accounts', 'sso-on', 'sso-off'].includes(cmd)) {
-  console.error('Usage: rollout-auth.mjs status|accounts|snapshot|enable|disable|sso-on|sso-off');
+if (!['status', 'snapshot', 'enable', 'disable', 'accounts', 'sso-on', 'sso-off', 'unlock', 'lock'].includes(cmd)) {
+  console.error('Usage: rollout-auth.mjs status|accounts|snapshot|enable|disable|sso-on|sso-off|lock|unlock');
   process.exit(1);
 }
 
@@ -72,7 +72,8 @@ if (cmd === 'status') {
   console.log('accounts    ', c.accounts);
   console.log('legacy_uids ', c.legacy);
   const gated = !!(cfg.requireAuth || cfg.authCreateOnly);
-  console.log('\nSign-in is currently ' + (gated ? 'REQUIRED to create trips' : 'optional (nobody is gated)'));
+  console.log('\nSign-in is currently ' + (gated ? 'REQUIRED to create trips' : 'optional for API creates'));
+  console.log('Logged-out UI is ' + (cfg.allowAnonymous ? 'UNLOCKED (anonymous allowed)' : 'a Google-only wall (v67+)'));
   if (gated && c.legacy === 0) console.log('WARNING: gate is on but legacy_uids is empty — existing users are being gated.');
 }
 
@@ -153,11 +154,26 @@ if (cmd === 'sso-off') {
   console.log('ssoOnboarding = false. New users are back to the name-only start.');
 }
 
+if (cmd === 'lock') {
+  const cfg = await readConfig();
+  cfg.allowAnonymous = false;
+  await writeConfig(cfg);
+  console.log('allowAnonymous = false. v67+ clients show only Google sign-in when logged out.');
+}
+
+if (cmd === 'unlock') {
+  const cfg = await readConfig();
+  cfg.allowAnonymous = true;
+  await writeConfig(cfg);
+  console.log('allowAnonymous = true. Logged-out UI unlocked — no redeploy. v67+ clients pick this up at next /config.');
+}
+
 if (cmd === 'disable') {
   const cfg = await readConfig();
   cfg.authCreateOnly = false;
   cfg.requireAuth = false;
   cfg.ssoOnboarding = false;
+  cfg.allowAnonymous = true;
   await writeConfig(cfg);
   console.log('Kill switch applied — open access and the old onboarding restored. No redeploy needed.');
 }
