@@ -3,9 +3,150 @@ import { neon } from '@neondatabase/serverless';
 const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,PUT,POST,OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Max-Age': '86400',
   'Content-Type': 'application/json'
 };
+
+/* ---- trip merge (v65) -------------------------------------------------------
+   Whole-document last-write-wins destroyed concurrent edits: whoever PUT last
+   erased everything the other member had added. Every write now merges item by
+   item. The rules live here, and this text is duplicated verbatim into
+   worker.js and index.html — scripts/merge_parity.cjs fails if the two drift.
+
+     - expenses / settlements / members: union by id. The item with the newer
+       stamp (updatedAt, else created) wins; on a tie the newer trip's
+       copy wins, so a rename is never silently reverted by an older peer.
+     - deletion is a tombstone, never an absence. tombstones.ex / .mem are
+       {id: isoDeletedAt} maps. A tombstone only kills an item whose own stamp
+       is OLDER than the tombstone — so re-adding a removed member, or an edit
+       that races a delete, survives, and a stale tombstone cannot keep killing
+       an item that was legitimately recreated.
+     - the trip's own deletion is monotone the same way: deletedAt vs a later
+       undeletedAt, so a peer that has not heard about the delete cannot
+       resurrect the trip merely by pushing an unrelated expense.
+     - trip scalars (name, status, currency, ownerId) follow metaAt, which only
+       moves when a scalar actually changes — NOT updated_at, which every write
+       bumps. Otherwise a device that merely adds an expense reverts a rename it
+       never saw. The server must not restamp either clock before merging.
+     - a member is never removed while a live expense or settlement still refers
+       to them, whatever the tombstones say: an orphaned paidBy silently drops
+       that person out of the split maths and crashes the settle sheet.
+
+   The load-bearing invariant: an item missing from one side is never deleted.
+   A stale client that has never seen an expense can no longer destroy it.     */
+function slIso(v) { return typeof v === 'string' ? v : ''; }
+/* deliberately NOT o.at — that is the user's chosen expense date, which can be
+   backdated or set in the future, and must never act as an edit time. */
+function slStamp(o) { return slIso(o && (o.updatedAt || o.created)); }
+function slMax(a, b) { return slIso(a) > slIso(b) ? slIso(a) : slIso(b); }
+function slTomb(t) {
+  var x = (t && t.tombstones) || {};
+  return { ex: x.ex || {}, mem: x.mem || {} };
+}
+/* A tombstone only wins against an item older than itself. */
+function slKilled(tombAt, item) {
+  return !!tombAt && slIso(tombAt) > slStamp(item);
+}
+/* Settlements shipped without ids. Derive one deterministically so two devices
+   that recorded the same payment agree it is one payment, not two. */
+function slSettleId(s) {
+  if (!s) return '';
+  if (s.id) return s.id;
+  return 's_' + [s.from, s.to, s.amount, s.paidAt || ''].join('|');
+}
+function slMergeMap(a, b) {
+  var out = {}, k;
+  for (k in a) if (Object.prototype.hasOwnProperty.call(a, k)) out[k] = a[k];
+  for (k in b) if (Object.prototype.hasOwnProperty.call(b, k)) {
+    if (!out[k] || slIso(b[k]) > slIso(out[k])) out[k] = b[k];
+  }
+  return out;
+}
+/* lose first, win last: a tie hands it to the newer trip. */
+function slMergeList(loseList, winList, idOf, tombs) {
+  var byId = {}, order = [], i, item, id;
+  var take = function (list) {
+    for (i = 0; i < (list || []).length; i++) {
+      item = list[i]; if (!item) continue;
+      id = idOf(item); if (!id) continue;
+      if (!(id in byId)) { byId[id] = item; order.push(id); continue; }
+      if (slStamp(item) >= slStamp(byId[id])) byId[id] = item;
+    }
+  };
+  take(loseList); take(winList);
+  var out = [];
+  for (i = 0; i < order.length; i++) {
+    id = order[i];
+    if (tombs && slKilled(tombs[id], byId[id])) continue;
+    out.push(byId[id]);
+  }
+  return out;
+}
+function slMergeTrips(a, b) {
+  if (!a) return b; if (!b) return a;
+  var aWins = slIso(a.updated_at) > slIso(b.updated_at);
+  var win = aWins ? a : b, lose = aWins ? b : a;
+  /* scalars run on their own clock, so an unrelated write cannot revert them */
+  var aMeta = slIso(a.metaAt), bMeta = slIso(b.metaAt);
+  /* a side that has never touched a scalar must not outrank one that has, so an
+     absent metaAt loses outright rather than falling back to updated_at */
+  var sWin = aMeta > bMeta ? a : (bMeta > aMeta ? b : win);
+
+  var out = {}, k;
+  for (k in lose) if (Object.prototype.hasOwnProperty.call(lose, k)) out[k] = lose[k];
+  for (k in win) if (Object.prototype.hasOwnProperty.call(win, k)) out[k] = win[k];
+  var SCALARS = ['name', 'status', 'currency', 'ownerId'];
+  for (k = 0; k < SCALARS.length; k++) {
+    if (sWin[SCALARS[k]] !== undefined) out[SCALARS[k]] = sWin[SCALARS[k]];
+  }
+  out.metaAt = slMax(a.metaAt, b.metaAt);
+  if (!out.metaAt) delete out.metaAt;
+
+  var at = slTomb(a), bt = slTomb(b);
+  var exT = slMergeMap(at.ex, bt.ex), memT = slMergeMap(at.mem, bt.mem);
+  out.tombstones = { ex: exT, mem: memT };
+
+  out.expenses = slMergeList(lose.expenses, win.expenses, function (e) { return e.id; }, exT);
+  out.settlements = slMergeList(lose.settlements, win.settlements, slSettleId, null);
+
+  var members = {}, src = [lose.members || {}, win.members || {}], j;
+  for (j = 0; j < src.length; j++) {
+    for (k in src[j]) {
+      if (!Object.prototype.hasOwnProperty.call(src[j], k)) continue;
+      if (!(k in members) || slStamp(src[j][k]) >= slStamp(members[k])) members[k] = src[j][k];
+    }
+  }
+  for (k in memT) if (slKilled(memT[k], members[k])) delete members[k];
+  /* never orphan an expense: a member still referenced stays, tombstone or not */
+  var used = {}, i2, e2;
+  for (i2 = 0; i2 < out.expenses.length; i2++) {
+    e2 = out.expenses[i2];
+    if (e2.paidBy) used[e2.paidBy] = 1;
+    if (e2.createdBy) used[e2.createdBy] = 1;
+    for (k in (e2.splits || {})) if (+e2.splits[k] > 0) used[k] = 1;
+  }
+  for (i2 = 0; i2 < out.settlements.length; i2++) {
+    if (out.settlements[i2].from) used[out.settlements[i2].from] = 1;
+    if (out.settlements[i2].to) used[out.settlements[i2].to] = 1;
+  }
+  var allM = [lose.members || {}, win.members || {}];
+  for (i2 = 0; i2 < allM.length; i2++) {
+    for (k in allM[i2]) if (used[k] && !members[k]) members[k] = allM[i2][k];
+  }
+  out.members = members;
+
+  /* Trip deletion is monotone: only a later undeletedAt brings it back. */
+  var del = slMax(a.deletedAt, b.deletedAt), undel = slMax(a.undeletedAt, b.undeletedAt);
+  if (undel) out.undeletedAt = undel; else delete out.undeletedAt;
+  if (del && del > undel) { out.deletedAt = del; out.deletedBy = a.deletedAt === del ? a.deletedBy : b.deletedBy; }
+  else { delete out.deletedAt; delete out.deletedBy; }
+
+  out.rev = Math.max(+a.rev || 0, +b.rev || 0);
+  out.updated_at = slMax(a.updated_at, b.updated_at);
+  return out;
+}
+/* ---- end trip merge --------------------------------------------------------- */
 
 const FEEDBACK_CODE = 'FDBACK';
 const RESTORE_CODE = 'RSTORE';
@@ -527,15 +668,37 @@ export default {
             }
           }
         }
-        trip.updated_at = new Date().toISOString();
-        const body = JSON.stringify(trip);
-        const rows = await sql`
-          insert into trips (code, data, updated_at)
-          values (${code}, ${body}::jsonb, now())
-          on conflict (code) do update set data = excluded.data, updated_at = now()
-          returning data
-        `;
-        return json({ trip: rows[0].data });
+        /* Deliberately NOT restamping trip.updated_at: the merge uses it to decide
+           whose trip-level scalars win, and a server stamp would hand that to
+           whichever stale client happened to push last. */
+        if (!trip.updated_at) trip.updated_at = new Date().toISOString();
+        /* Read-merge-write. The merge stops a stale client erasing what it never
+           saw; the compare-and-swap on rev stops two simultaneous writers erasing
+           each other between the read and the write. rev is an integer inside the
+           JSON, not the updated_at column: timestamptz round-trips through the
+           driver at millisecond precision and would almost never compare equal. */
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const prior = await sql`select data from trips where code = ${code}`;
+          if (!prior.length) {
+            const fresh = Object.assign({}, trip, { rev: 1 });
+            const ins = await sql`
+              insert into trips (code, data, updated_at)
+              values (${code}, ${JSON.stringify(fresh)}::jsonb, now())
+              on conflict (code) do nothing
+              returning data`;
+            if (ins.length) return json({ trip: ins[0].data });
+            continue;
+          }
+          const priorRev = Math.floor(Number(prior[0].data && prior[0].data.rev)) || 0;
+          const merged = slMergeTrips(prior[0].data, trip);
+          merged.rev = priorRev + 1;
+          const upd = await sql`
+            update trips set data = ${JSON.stringify(merged)}::jsonb, updated_at = now()
+            where code = ${code} and coalesce((data->>'rev')::int, 0) = ${priorRev}
+            returning data`;
+          if (upd.length) return json({ trip: upd[0].data });
+        }
+        return json({ error: 'Trip is busy, please retry' }, 409);
       }
 
       return json({ error: 'Method not allowed' }, 405);

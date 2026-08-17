@@ -56,7 +56,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){const th=localStorage.getItem('sl_theme');const fs=localStorage.getItem('sl_fs');if(th==='light')document.body.classList.add('light');if(fs)document.documentElement.style.setProperty('--fs',fs+'px')})();
-const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=64;
+const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=65;
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.vTag').forEach(el=>el.textContent='v'+APP_VERSION)});
 const CATS=['🍜 Food','🏨 Stay','🚌 Transport','🎡 Activities','🛍 Shopping','🌃 Nightlife','💊 Health','★ Other'];
 let dashChart='flow',expCat=7;
@@ -119,7 +119,8 @@ function rcKey(e,i){if(e.key==='Backspace'&&!document.getElementById('rc'+i)?.va
 function rcPaste(e,i){e.preventDefault();const d=(e.clipboardData.getData('text')||'').replace(/[^0-9]/g,'').slice(0,6);d.split('').forEach((c,j)=>{const el=document.getElementById('rc'+j);if(el)el.value=c});if(d.length===6)submitRestoreCode();else document.getElementById('rc'+Math.min(d.length,5))?.focus()}
 async function showMyRestoreCode(){let trips=visibleTrips();if(!trips.length)return toast('Join a trip first to get a restore code');let bundle=Object.fromEntries(trips.map(t=>[t.code,me(t)]));closeModal();toast('Generating restore code…');try{let r=await api('/restore','POST',{uid:state.uid,name:state.name,paynowProxy:state.paynowProxy,claims:bundle}),link=location.origin+location.pathname+'?restore='+r.token,n=r.tripCount||trips.length,dB=r.token.split('').map(d=>'<span style="width:44px;height:52px;border-radius:12px;border:2px solid rgba(255,255,255,.18);display:inline-flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:900">'+d+'</span>').join('');modal(`<h2>Your restore code</h2><p class="muted">Use this on another browser or device to bring your identity — name, PayNow, and all ${n} of your trip${n===1?'':'s'} — back in one go. One-time use, expires in 5 minutes.</p><div class="card" style="text-align:center"><div class="k">Restore code</div><div style="display:flex;gap:8px;justify-content:center;margin:12px 0">${dB}</div><button class="btn ghost mini" onclick="copyShare('${esc(link)}')">Copy restore link</button></div><button class="btn" style="width:100%;margin-top:12px" onclick="closeModal()">Done</button>`,true)}catch(e){toast('Could not generate code: '+e.message)}}
 function normalizePayNowProxy(v){v=String(v||'').trim().replace(/\s+/g,'');if(/^\d{8}$/.test(v))return '+65'+v;if(/^65\d{8}$/.test(v))return '+'+v;return v}
-function normalizeTrip(t){t=t||{};t.members=t.members||{};t.expenses=t.expenses||[];t.settlements=t.settlements||[];t.currency=t.currency||'SGD';let i=0;Object.entries(t.members).forEach(([id,m])=>{t.members[id]=typeof m==='string'?{name:m,avatarColor:colors[i%colors.length],paynowProxy:''}:{name:m.name||'Unknown',avatarColor:colors[i%colors.length],paynowProxy:normalizePayNowProxy(m.paynowProxy||'')};i++});if(!t.ownerId)t.ownerId=Object.keys(t.members)[0]||'';if(!t.status)t.status='active';t.expenses.forEach(e=>{e.originalAmount=e.originalAmount??e.amount;e.currency=e.currency||'SGD';e.fxRate=e.fxRate||1;e.splits=e.splits||null});return t}
+function normalizeTrip(t){t=t||{};t.members=t.members||{};t.expenses=t.expenses||[];t.settlements=t.settlements||[];t.currency=t.currency||'SGD';let i=0;Object.entries(t.members).forEach(([id,m])=>{t.members[id]=typeof m==='string'?{name:m,avatarColor:colors[i%colors.length],paynowProxy:''}:Object.assign({},m,{name:m.name||'Unknown',avatarColor:colors[i%colors.length],paynowProxy:normalizePayNowProxy(m.paynowProxy||'')});i++});if(!t.ownerId)t.ownerId=Object.keys(t.members)[0]||'';if(!t.status)t.status='active';t.expenses.forEach(e=>{e.originalAmount=e.originalAmount??e.amount;e.currency=e.currency||'SGD';e.fxRate=e.fxRate||1;e.splits=e.splits||null;if(!e.updatedAt)e.updatedAt=e.created||''/* never e.at: that is the user's chosen
+    expense date and may be in the future, which would outrank every tombstone */});t.settlements.forEach(x=>{if(!x.id)x.id=slSettleId(x)});let tb=t.tombstones&&typeof t.tombstones==='object'?t.tombstones:{};t.tombstones={ex:tb.ex||{},mem:tb.mem||{}};return t}
 function migrateState(){let v=+(state.appVersion||0);if(v<14){['TOKYX','DKM8T1','QL6MKH','5B2OYE','S3CMY5','24UUP3','R4EWGL'].forEach(c=>delete state.trips[c]);Object.keys(state.trips).forEach(c=>{let t=state.trips[c];if(t?.name&&/^(Codex|Cycle|Fresh Beta|Beta Share|Tokyo Trip)/i.test(t.name))delete state.trips[c]})}
 if(v<57){/* trips that predate sync tracking are assumed already on the server */Object.keys(state.trips||{}).forEach(c=>{let t=state.trips[c];if(t&&!t.syncedAt){t.syncedAt=t.updated_at||new Date().toISOString();t.pendingSync=false}})}
 state.appVersion=APP_VERSION}
@@ -127,28 +128,188 @@ state.appVersion=APP_VERSION}
    Local storage is the source of truth until the server confirms a write.
    A trip is only ever removed locally when the server explicitly tombstones it
    or the user deletes it — never because a request 404'd or the network died. */
-const LOCAL_FIELDS=['pendingSync','syncedAt','missingSince'];
+/* ---- trip merge (v65) -------------------------------------------------------
+   Whole-document last-write-wins destroyed concurrent edits: whoever PUT last
+   erased everything the other member had added. Every write now merges item by
+   item. The rules live here, and this text is duplicated verbatim into
+   worker.js and index.html — scripts/merge_parity.cjs fails if the two drift.
+
+     - expenses / settlements / members: union by id. The item with the newer
+       stamp (updatedAt, else created) wins; on a tie the newer trip's
+       copy wins, so a rename is never silently reverted by an older peer.
+     - deletion is a tombstone, never an absence. tombstones.ex / .mem are
+       {id: isoDeletedAt} maps. A tombstone only kills an item whose own stamp
+       is OLDER than the tombstone — so re-adding a removed member, or an edit
+       that races a delete, survives, and a stale tombstone cannot keep killing
+       an item that was legitimately recreated.
+     - the trip's own deletion is monotone the same way: deletedAt vs a later
+       undeletedAt, so a peer that has not heard about the delete cannot
+       resurrect the trip merely by pushing an unrelated expense.
+     - trip scalars (name, status, currency, ownerId) follow metaAt, which only
+       moves when a scalar actually changes — NOT updated_at, which every write
+       bumps. Otherwise a device that merely adds an expense reverts a rename it
+       never saw. The server must not restamp either clock before merging.
+     - a member is never removed while a live expense or settlement still refers
+       to them, whatever the tombstones say: an orphaned paidBy silently drops
+       that person out of the split maths and crashes the settle sheet.
+
+   The load-bearing invariant: an item missing from one side is never deleted.
+   A stale client that has never seen an expense can no longer destroy it.     */
+function slIso(v) { return typeof v === 'string' ? v : ''; }
+/* deliberately NOT o.at — that is the user's chosen expense date, which can be
+   backdated or set in the future, and must never act as an edit time. */
+function slStamp(o) { return slIso(o && (o.updatedAt || o.created)); }
+function slMax(a, b) { return slIso(a) > slIso(b) ? slIso(a) : slIso(b); }
+function slTomb(t) {
+  var x = (t && t.tombstones) || {};
+  return { ex: x.ex || {}, mem: x.mem || {} };
+}
+/* A tombstone only wins against an item older than itself. */
+function slKilled(tombAt, item) {
+  return !!tombAt && slIso(tombAt) > slStamp(item);
+}
+/* Settlements shipped without ids. Derive one deterministically so two devices
+   that recorded the same payment agree it is one payment, not two. */
+function slSettleId(s) {
+  if (!s) return '';
+  if (s.id) return s.id;
+  return 's_' + [s.from, s.to, s.amount, s.paidAt || ''].join('|');
+}
+function slMergeMap(a, b) {
+  var out = {}, k;
+  for (k in a) if (Object.prototype.hasOwnProperty.call(a, k)) out[k] = a[k];
+  for (k in b) if (Object.prototype.hasOwnProperty.call(b, k)) {
+    if (!out[k] || slIso(b[k]) > slIso(out[k])) out[k] = b[k];
+  }
+  return out;
+}
+/* lose first, win last: a tie hands it to the newer trip. */
+function slMergeList(loseList, winList, idOf, tombs) {
+  var byId = {}, order = [], i, item, id;
+  var take = function (list) {
+    for (i = 0; i < (list || []).length; i++) {
+      item = list[i]; if (!item) continue;
+      id = idOf(item); if (!id) continue;
+      if (!(id in byId)) { byId[id] = item; order.push(id); continue; }
+      if (slStamp(item) >= slStamp(byId[id])) byId[id] = item;
+    }
+  };
+  take(loseList); take(winList);
+  var out = [];
+  for (i = 0; i < order.length; i++) {
+    id = order[i];
+    if (tombs && slKilled(tombs[id], byId[id])) continue;
+    out.push(byId[id]);
+  }
+  return out;
+}
+function slMergeTrips(a, b) {
+  if (!a) return b; if (!b) return a;
+  var aWins = slIso(a.updated_at) > slIso(b.updated_at);
+  var win = aWins ? a : b, lose = aWins ? b : a;
+  /* scalars run on their own clock, so an unrelated write cannot revert them */
+  var aMeta = slIso(a.metaAt), bMeta = slIso(b.metaAt);
+  /* a side that has never touched a scalar must not outrank one that has, so an
+     absent metaAt loses outright rather than falling back to updated_at */
+  var sWin = aMeta > bMeta ? a : (bMeta > aMeta ? b : win);
+
+  var out = {}, k;
+  for (k in lose) if (Object.prototype.hasOwnProperty.call(lose, k)) out[k] = lose[k];
+  for (k in win) if (Object.prototype.hasOwnProperty.call(win, k)) out[k] = win[k];
+  var SCALARS = ['name', 'status', 'currency', 'ownerId'];
+  for (k = 0; k < SCALARS.length; k++) {
+    if (sWin[SCALARS[k]] !== undefined) out[SCALARS[k]] = sWin[SCALARS[k]];
+  }
+  out.metaAt = slMax(a.metaAt, b.metaAt);
+  if (!out.metaAt) delete out.metaAt;
+
+  var at = slTomb(a), bt = slTomb(b);
+  var exT = slMergeMap(at.ex, bt.ex), memT = slMergeMap(at.mem, bt.mem);
+  out.tombstones = { ex: exT, mem: memT };
+
+  out.expenses = slMergeList(lose.expenses, win.expenses, function (e) { return e.id; }, exT);
+  out.settlements = slMergeList(lose.settlements, win.settlements, slSettleId, null);
+
+  var members = {}, src = [lose.members || {}, win.members || {}], j;
+  for (j = 0; j < src.length; j++) {
+    for (k in src[j]) {
+      if (!Object.prototype.hasOwnProperty.call(src[j], k)) continue;
+      if (!(k in members) || slStamp(src[j][k]) >= slStamp(members[k])) members[k] = src[j][k];
+    }
+  }
+  for (k in memT) if (slKilled(memT[k], members[k])) delete members[k];
+  /* never orphan an expense: a member still referenced stays, tombstone or not */
+  var used = {}, i2, e2;
+  for (i2 = 0; i2 < out.expenses.length; i2++) {
+    e2 = out.expenses[i2];
+    if (e2.paidBy) used[e2.paidBy] = 1;
+    if (e2.createdBy) used[e2.createdBy] = 1;
+    for (k in (e2.splits || {})) if (+e2.splits[k] > 0) used[k] = 1;
+  }
+  for (i2 = 0; i2 < out.settlements.length; i2++) {
+    if (out.settlements[i2].from) used[out.settlements[i2].from] = 1;
+    if (out.settlements[i2].to) used[out.settlements[i2].to] = 1;
+  }
+  var allM = [lose.members || {}, win.members || {}];
+  for (i2 = 0; i2 < allM.length; i2++) {
+    for (k in allM[i2]) if (used[k] && !members[k]) members[k] = allM[i2][k];
+  }
+  out.members = members;
+
+  /* Trip deletion is monotone: only a later undeletedAt brings it back. */
+  var del = slMax(a.deletedAt, b.deletedAt), undel = slMax(a.undeletedAt, b.undeletedAt);
+  if (undel) out.undeletedAt = undel; else delete out.undeletedAt;
+  if (del && del > undel) { out.deletedAt = del; out.deletedBy = a.deletedAt === del ? a.deletedBy : b.deletedBy; }
+  else { delete out.deletedAt; delete out.deletedBy; }
+
+  out.rev = Math.max(+a.rev || 0, +b.rev || 0);
+  out.updated_at = slMax(a.updated_at, b.updated_at);
+  return out;
+}
+/* ---- end trip merge --------------------------------------------------------- */
+
+const LOCAL_FIELDS=['pendingSync','syncedAt','missingSince'];let _outSeq=0;
 function forServer(t){let c=Object.assign({},t);LOCAL_FIELDS.forEach(k=>delete c[k]);return c}
-function markLocal(code){let t=state.trips[code];if(t){t.pendingSync=true}if(!state.outbox)state.outbox={};if(!state.outbox[code])state.outbox[code]=Date.now()}
+function markLocal(code){let t=state.trips[code];if(t){t.pendingSync=true}if(!state.outbox)state.outbox={};state.outbox[code]=Date.now()+'#'+(++_outSeq)}
 function markSynced(code,t){t.pendingSync=false;t.syncedAt=new Date().toISOString();delete t.missingSince;if(state.outbox)delete state.outbox[code];return t}
 function toTrash(code,reason){let t=state.trips[code];if(!t)return;if(!state.trash)state.trash={};state.trash[code]={trip:t,at:new Date().toISOString(),reason:reason||'removed'};delete state.trips[code];if(state.outbox)delete state.outbox[code];save()}
+function adoptServer(code,serverTrip,queuedAt){let local=state.trips[code];
+  /* trashed mid-flight: writing the server copy back would resurrect the trip AND
+     permanently shadow its trash entry, since recoverableTrips() skips live codes */
+  if(!local){if(state.outbox)delete state.outbox[code];return null}
+  let t=normalizeTrip(local?slMergeTrips(normalizeTrip(serverTrip),normalizeTrip(local)):normalizeTrip(serverTrip));
+  if(state.outbox&&state.outbox[code]&&state.outbox[code]!==queuedAt){t.pendingSync=true}
+  else{t.pendingSync=false;t.syncedAt=new Date().toISOString();delete t.missingSince;if(state.outbox)delete state.outbox[code]}
+  state.trips[code]=t;if(cur&&cur.code===code)cur=t;return t}
+function repaintTrip(code){try{if(!cur||cur.code!==code)return;
+  if(document.getElementById('modal').classList.contains('on'))return;
+  if(activeFormDirty())return;/* never blow away something being typed */
+  renderTrip()}catch(e){}}
 function pendingCount(){return Object.keys(state.outbox||{}).length}
-async function push(t){t=normalizeTrip(t);t.updated_at=new Date().toISOString();state.trips[t.code]=t;markLocal(t.code);save();
-  try{let j=await api('/trips/'+t.code,'PUT',forServer(t));let nt=markSynced(t.code,normalizeTrip(j.trip));state.trips[t.code]=nt;if(cur&&cur.code===t.code)cur=nt;save();toast('Saved')}
+async function push(t){t=normalizeTrip(t);t.updated_at=new Date().toISOString();state.trips[t.code]=t;markLocal(t.code);save();const q=state.outbox[t.code];
+  try{let j=await api('/trips/'+t.code,'PUT',forServer(t));adoptServer(t.code,normalizeTrip(j.trip),q);save();repaintTrip(t.code);toast('Saved')}
   catch(e){save();
     if(e.status===401){toast('Saved on this device — sign in to sync it');refreshConfig()}
     else toast(e.offline?'Saved on this device — will sync when back online':'Saved on this device — sync retry pending')}}
 async function flushOutbox(announce=false){let codes=Object.keys(state.outbox||{});if(!codes.length)return 0;let sent=0;
   for(const c of codes){let t=state.trips[c];
     if(!t){delete state.outbox[c];continue}
-    try{let j=await api('/trips/'+c,'PUT',forServer(normalizeTrip(t)));let nt=markSynced(c,normalizeTrip(j.trip));state.trips[c]=nt;if(cur&&cur.code===c)cur=nt;sent++}
-    catch(e){if(e.status>=400&&e.status<500&&e.status!==408&&e.status!==429){console.warn('SplitLah: server rejected trip '+c,e.message)}break}}
+    const q=state.outbox[c];
+    try{let j=await api('/trips/'+c,'PUT',forServer(normalizeTrip(t)));adoptServer(c,normalizeTrip(j.trip),q);sent++}
+    catch(e){if(e.status>=400&&e.status<500&&e.status!==408&&e.status!==429){console.warn('SplitLah: server rejected trip '+c,e.message)}
+      /* a dead network means stop; one trip the server dislikes must not starve
+         every other trip queued behind it */
+      if(e.offline||e.status===0)break;continue}}
   save();if(sent){if(announce)toast('Synced '+sent+' trip'+(sent>1?'s':''));cur?renderTrip():renderHome()}
   return sent}
 async function pull(c){let j=await api('/trips/'+c),t=normalizeTrip(j.trip);
   if(t.deletedAt){let err=Error('Trip was deleted');err.tombstone=true;throw err}
   let local=state.trips[c];
-  if(local&&local.pendingSync){/* unsent local edits win; re-queue instead of clobbering */markLocal(c);save();flushOutbox();return normalizeTrip(local)}
+  if(local&&local.pendingSync){/* unsent local edits win per item, but the server's items
+     are merged in rather than discarded — the old behaviour left this device blind to
+     every other member for as long as a write stayed queued. */
+  let m=normalizeTrip(slMergeTrips(normalizeTrip(t),normalizeTrip(local)));
+  m.pendingSync=true;m.syncedAt=local.syncedAt;state.trips[c]=m;save();flushOutbox();return m}
   state.trips[c]=markSynced(c,t);save();return state.trips[c]}
 function go(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id===v));scrollTo(0,0)}
 function pushNav(s){if(history.state&&JSON.stringify(history.state)===JSON.stringify(s))return;history.pushState(s,'')}
@@ -175,9 +336,9 @@ function showJoinChoice(t,mid=''){let suggested=mid&&t.members[mid]?`<div class=
 function avFrom(m){return `<div class="av" style="background:${m.avatarColor||colors[0]}">${esc(initials(m.name))}</div>`}
 function claimJoin(id){if(!pendingJoin||!pendingJoin.members[id])return;let m=pendingJoin.members[id],code=pendingJoin.code;state.claims[code]=id;state.trips[code]=normalizeTrip(pendingJoin);state.pendingInvite=null;if(!state.name||state.name==='there'||state.name!==m.name)state.name=m.name||state.name;if(!state.paynowProxy&&m.paynowProxy)state.paynowProxy=m.paynowProxy;state.onboarded=true;save();closeModal();openTrip(code);setTimeout(()=>{if(!normalizePayNowProxy(m.paynowProxy||state.paynowProxy))openSettings(false)},250);setTimeout(()=>offerInstallRestore(code,id),900);toast('Joined as '+m.name)}
 function joinAsNew(){if(!pendingJoin)return;modal(`<h2>Join ${esc(pendingJoin.name)}</h2><label class="muted">Your name</label><input class="field" id="joinName" value="${esc(state.name||'')}" placeholder="Your name"><div style="height:10px"></div><label class="muted">PayNow proxy</label><input class="field" id="joinPayNow" value="${esc(state.paynowProxy||'')}" placeholder="+65 mobile or NRIC"><div style="height:10px"></div><button class="btn" style="width:100%" onclick="confirmJoinAsNew()">Join trip</button>`)}
-async function confirmJoinAsNew(){let t=pendingJoin;if(!t)return;let n=($('joinName')?.value||state.name||'').trim();if(!n)return toast('Name needed');state.name=n;state.paynowProxy=normalizePayNowProxy($('joinPayNow')?.value||state.paynowProxy||'');state.onboarded=true;t.members[state.uid]={name:state.name,avatarColor:colors[memberList(t).length%colors.length],paynowProxy:state.paynowProxy};state.claims[t.code]=state.uid;state.trips[t.code]=normalizeTrip(t);state.pendingInvite=null;save();await push(t);closeModal();openTrip(t.code);setTimeout(()=>offerInstallRestore(t.code,state.uid),900)}
+async function confirmJoinAsNew(){let t=pendingJoin;if(!t)return;let n=($('joinName')?.value||state.name||'').trim();if(!n)return toast('Name needed');state.name=n;state.paynowProxy=normalizePayNowProxy($('joinPayNow')?.value||state.paynowProxy||'');state.onboarded=true;t.members[state.uid]={name:state.name,avatarColor:colors[memberList(t).length%colors.length],paynowProxy:state.paynowProxy,updatedAt:new Date().toISOString()};state.claims[t.code]=state.uid;state.trips[t.code]=normalizeTrip(t);state.pendingInvite=null;save();await push(t);closeModal();openTrip(t.code);setTimeout(()=>offerInstallRestore(t.code,state.uid),900)}
 function openSettings(first=false){modal(`<div style='padding:4px 0 16px'><div style='font-size:1.1rem;font-weight:700;margin-bottom:20px'>${first?'Set up profile':'Edit profile'}</div><label class='muted' style='display:block;margin-bottom:6px;font-size:.76rem;text-transform:uppercase;letter-spacing:.05em'>Your name</label><input class='field' id='setName' value='${esc(state.name)}' placeholder='Your name' style='margin-bottom:14px'><label class='muted' style='display:block;margin-bottom:6px;font-size:.76rem;text-transform:uppercase;letter-spacing:.05em'>PayNow number</label><input class='field' id='setPayNow' inputmode='tel' value='${esc(state.paynowProxy||"")}' placeholder='+65 mobile or NRIC'><p class='muted' style='font-size:.73rem;margin:7px 0 22px;opacity:.6'>Used when members request payment from you.</p><button class='btn' style='width:100%' onclick='saveSettings()'>Save</button><button class='btn ghost' style='width:100%;margin-top:10px' onclick='closeModal();openRestoreEntry()'>Restore identity from another device</button>${visibleTrips().length?`<button class='btn ghost' style='width:100%;margin-top:10px' onclick='closeModal();showMyRestoreCode()'>Get my restore code</button>`:''}${recoverableTrips().length?`<button class='btn ghost' style='width:100%;margin-top:10px' onclick='closeModal();openRecovery()'>Recover missing trips (${recoverableTrips().length})</button>`:''}${signedIn()?`<div class='card' style='margin-top:14px'><div class='k'>Signed in</div><div class='muted' style='font-size:.8rem;margin-top:4px'>${esc(state.auth.email||'Google account')}</div><button class='btn ghost mini' style='width:100%;margin-top:10px' onclick='closeModal();signOut()'>Sign out</button><button class='btn ghost mini' style='width:100%;margin-top:8px;color:#c94a38' onclick='closeModal();deleteAccount()'>Delete account</button></div>`:`<button class='btn ghost' style='width:100%;margin-top:10px' onclick='closeModal();openSignIn()'>Sign in with Google</button>`}<div class="row" style="margin-top:18px;padding-top:14px;border-top:1px solid var(--line);align-items:center"><div class="muted" style="font-size:.76rem;-webkit-user-select:none;user-select:none">SplitLah <b>v${APP_VERSION}</b></div><button class="btn ghost mini" style="margin-left:auto" onclick="checkForUpdate()">Check for update</button></div></div>`)}
-async function saveSettings(){let nextName=$('setName').value.trim();if(!nextName)return toast('Name needed');state.name=nextName;state.paynowProxy=normalizePayNowProxy($('setPayNow').value);state.onboarded=true;let touched=[];Object.values(state.trips).forEach(t=>{t=normalizeTrip(t);let id=state.claims?.[t.code]||state.uid;if(!t.deletedAt&&t.members[id]){t.members[id].name=state.name;t.members[id].paynowProxy=state.paynowProxy;touched.push(t)}});if(cur){let id=me(cur);if(cur.members?.[id]){cur.members[id].name=state.name;cur.members[id].paynowProxy=state.paynowProxy}}save();closeModal();cur?renderTrip():renderHome();toast(touched.length?'Profile updated in trips':'Profile saved');if(joinParam&&!cur)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),150);for(const t of touched)await push(t)}
+async function saveSettings(){let nextName=$('setName').value.trim();if(!nextName)return toast('Name needed');state.name=nextName;state.paynowProxy=normalizePayNowProxy($('setPayNow').value);state.onboarded=true;let touched=[];Object.values(state.trips).forEach(t=>{t=normalizeTrip(t);let id=state.claims?.[t.code]||state.uid;if(!t.deletedAt&&t.members[id]){t.members[id].name=state.name;t.members[id].paynowProxy=state.paynowProxy;t.members[id].updatedAt=new Date().toISOString();touched.push(t)}});if(cur){let id=me(cur);if(cur.members?.[id]){cur.members[id].name=state.name;cur.members[id].paynowProxy=state.paynowProxy}}save();closeModal();cur?renderTrip():renderHome();toast(touched.length?'Profile updated in trips':'Profile saved');if(joinParam&&!cur)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),150);for(const t of touched)await push(t)}
 /* ---- Google sign-in (v62) ---------------------------------------------------
    The account is an index, not an identity: state.uid and every member key in
    every trip stay exactly as they are. Signing in only merges claims. */
@@ -234,7 +395,7 @@ function openPayNowStep(){
 function savePayNowStep(){
   state.paynowProxy=normalizePayNowProxy($('obPayNow')?.value||'');save();
   let touched=[];Object.values(state.trips).forEach(t=>{let id=state.claims?.[t.code]||state.uid;
-    if(!t.deletedAt&&t.members&&t.members[id]){t.members[id].paynowProxy=state.paynowProxy;touched.push(t)}});
+    if(!t.deletedAt&&t.members&&t.members[id]){t.members[id].paynowProxy=state.paynowProxy;t.members[id].updatedAt=new Date().toISOString();touched.push(t)}});
   closeModal();goHome();toast(state.paynowProxy?'PayNow saved':'Skipped');
   touched.forEach(t=>push(t))}
 function showRedirectFallback(){let el=$('gsiAlt');
@@ -335,10 +496,12 @@ function openRecovery(){let items=recoverableTrips();
 async function recoverTrip(code,src){let rec=(state.trash||{})[code],t=rec&&rec.trip;
   if(!t&&src==='backup'){let b=backupInfo();t=b&&b.state.trips&&b.state.trips[code]}
   if(!t)return toast('Could not find that trip');
-  t=normalizeTrip(JSON.parse(JSON.stringify(t)));delete t.deletedAt;delete t.deletedBy;t.pendingSync=true;
+  t=normalizeTrip(JSON.parse(JSON.stringify(t)));delete t.deletedAt;delete t.deletedBy;t.undeletedAt=new Date().toISOString();t.pendingSync=true;
   state.trips[code]=t;if(state.trash)delete state.trash[code];markLocal(code);save();closeModal();
   try{let fresh=await pull(code);toast('Restored '+((fresh&&fresh.name)||t.name||code))}
-  catch(e){if(e.tombstone){toast('That trip was deleted by its owner')}else{flushOutbox();toast('Restored '+(t.name||code)+' — will re-upload when online')}}
+  catch(e){if(e.tombstone){/* leaving it queued would re-upload our undeletedAt and
+      revive the trip for every member */toTrash(code,'deleted by trip owner');
+      toast('That trip was deleted by its owner')}else{flushOutbox();toast('Restored '+(t.name||code)+' — will re-upload when online')}}
   goHome()}
 function openFeedback(){modal(`<h2>Send feedback</h2><textarea class="field" id="fbMsg" rows="6" placeholder="Bug, confusing bit, or suggestion..."></textarea><div style="height:10px"></div><button class="btn" style="width:100%" onclick="submitFeedback()">Send feedback</button>`)}
 async function submitFeedback(){let message=$('fbMsg').value.trim();if(!message)return toast('Feedback needed');try{await api('/feedback','POST',{message,rating:3,tripCode:cur?.code||'',screen:cur?tab:'home',appVersion:'v'+APP_VERSION,actorName:state.name,actorId:state.uid});closeModal();toast('Feedback sent')}catch(e){toast('Feedback failed: '+e.message)}}
@@ -437,7 +600,7 @@ function fxDisplay(ccy,rate){return fxView(ccy,rate).text}
 function updateFxPreview(p=''){let c=p?($('edCur')?.value||'SGD'):expenseCurrency(),raw=+(($(p+'Amt')||$('amt'))?.value||0),inp=$(p+'FxRate');if(!inp||c==='SGD')return;let rate=rawRateFromDisplay(inp.value,inp.dataset.dir),sgd=raw*rate,txt=$(p+'FxPreview')||$('fxPreview');if(txt)txt.textContent=raw?`SGD equivalent: ${money(sgd)}`:'SGD equivalent updates after amount'}
 function previewReceipt(e,mode='new'){const previewId=mode==='edit'?'editReceiptPreview':'receiptPreview';let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=async()=>{let img=new Image();img.onload=async()=>{let scale=Math.min(1,900/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);let dataUrl=c.toDataURL('image/jpeg',.72);if(mode==='edit')pendingEditReceiptUrl=dataUrl;else pendingReceiptUrl=dataUrl;$(previewId).innerHTML=`<div class="fxbox row"><img class="thumb" src="${dataUrl}"><div><b>Receipt attached</b></div></div>`;if(state.imagekitKey){const url=await uploadReceipt(dataUrl);if(mode==='edit')pendingEditReceiptUrl=url;else pendingReceiptUrl=url;}};img.src=r.result};r.readAsDataURL(f);e.target.value=''}
 function previewSettleReceipt(e){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=async()=>{let img=new Image();img.onload=async()=>{let scale=Math.min(1,900/Math.max(img.width,img.height)),c=document.createElement('canvas');c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);c.getContext('2d').drawImage(img,0,0,c.width,c.height);let dataUrl=c.toDataURL('image/jpeg',.72);pendingSettleReceiptUrl=dataUrl;$('settleReceiptPreview').innerHTML=`<div class="fxbox row"><img class="thumb" src="${dataUrl}"><div><b>Payment proof attached</b><div class="muted" style="font-size:.75rem">Stored with this settlement</div></div><button class="btn ghost mini" style="margin-left:auto" onclick="pendingSettleReceiptUrl=null;$('settleReceiptPreview').innerHTML=''">Remove</button></div>`;if(state.imagekitKey)pendingSettleReceiptUrl=await uploadReceipt(dataUrl);};img.src=r.result};r.readAsDataURL(f);e.target.value=''}
-function buildExpenseDraft(){let d=$('desc').value.trim(),raw=+$('amt').value,ccy=expenseCurrency(),paidBy=$('paidBy').value;if(!d||!raw){toast('Description and amount needed');return null}let rate=ccy==='SGD'?1:rawRateFromDisplay(($('fxRate')||{}).value,($('fxRate')||{}).dataset?.dir),sgd=ccy==='SGD'?raw:raw*rate,split=collectSplits(sgd);if(split===false)return null;const dateVal=$('expDate')?.value||todayStr();return {id:uid(),desc:d,amount:sgd,originalAmount:raw,currency:ccy,fxRate:rate,paidBy,splitMode:split.mode,splits:split.splits,receiptUrl:pendingReceiptUrl,createdBy:me(),date:dateVal,at:new Date(dateVal+'T12:00:00').toISOString(),created:new Date().toISOString()}}
+function buildExpenseDraft(){let d=$('desc').value.trim(),raw=+$('amt').value,ccy=expenseCurrency(),paidBy=$('paidBy').value;if(!d||!raw){toast('Description and amount needed');return null}let rate=ccy==='SGD'?1:rawRateFromDisplay(($('fxRate')||{}).value,($('fxRate')||{}).dataset?.dir),sgd=ccy==='SGD'?raw:raw*rate,split=collectSplits(sgd);if(split===false)return null;const dateVal=$('expDate')?.value||todayStr();return {id:uid(),desc:d,amount:sgd,originalAmount:raw,currency:ccy,fxRate:rate,paidBy,splitMode:split.mode,splits:split.splits,receiptUrl:pendingReceiptUrl,createdBy:me(),date:dateVal,at:new Date(dateVal+'T12:00:00').toISOString(),created:new Date().toISOString(),updatedAt:new Date().toISOString()}}
 function expensePreviewRows(e){let ids=memberList().map(([id])=>id),n=ids.length||1;return ids.map(id=>{let share=e.splits?+(e.splits[id]||0):e.amount/n;return `<div class="previewRow"><span>${esc(memberName(id))}</span><b>${money(share)}</b></div>`}).join('')}
 function previewAddExpense(){const _cat=CATS[expCat]||CATS[7];let e=buildExpenseDraft();if(!e)return;e.cat=_cat;window.pendingExpenseDraft=e;modal(`<h2>Review expense</h2><div class="card"><div class="row"><div class="grow"><div class="k">Expense</div><b>${esc(e.desc)}</b><div class="muted">${esc(memberName(e.paidBy))} paid ${esc(e.currency)} ${esc(e.originalAmount)}${e.currency!=='SGD'?' · '+esc(fxDisplay(e.currency,e.fxRate)):''}</div></div><div class="amount">${money(e.amount)}</div></div></div><div class="card"><div class="k">Split preview</div><div class="previewRows">${expensePreviewRows(e)}</div></div>${e.receiptUrl?'<div class="muted" style="margin-bottom:10px">Receipt attached</div>':''}<button class="btn" style="width:100%" onclick="confirmAddExpense()">Confirm add</button><button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal()">Back to edit</button>`)}
 async function confirmAddExpense(){let e=window.pendingExpenseDraft;if(!e)return closeModal();await refreshTrip(true);cur.expenses.push(e);pendingReceiptUrl=null;pendingEditReceiptUrl=null;window.pendingExpenseDraft=null;closeModal();await push(cur);renderTrip()}
@@ -446,21 +609,21 @@ function openReceipt(id){let e=cur.expenses.find(x=>x.id===id);if(!e?.receiptUrl
 function openExpenseDetail(id){let e=cur.expenses.find(x=>x.id===id);if(!e)return;modal(`<div class="detailSheet"><h2>${esc(e.desc)}</h2>${e.receiptUrl?`<div class="receiptPane" onclick="this.classList.toggle('zoomed')"><img class="receiptLarge" src="${e.receiptUrl}"></div><div style="height:10px"></div>`:''}<div class="card"><div class="row"><div class="grow"><div class="k">Paid by</div><b>${esc(memberName(e.paidBy))}</b></div><div style="text-align:right"><div class="k">Amount</div><b>${money(e.amount)}</b></div></div><div style="height:10px"></div><div class="muted">${esc(e.currency||'SGD')} ${esc(e.originalAmount??e.amount)} · FX ${esc(fxDisplay(e.currency||'SGD',e.fxRate||1))} · ${esc(splitLabel(e))}</div></div><div class="card"><div class="k">Split detail</div>${splitDetail(e)}</div>${canEditExpense(e)?`<div class="grid2"><button class="btn ghost" onclick="openEditExpense('${id}')">Edit</button><button class="btn bad" onclick="delExp('${id}');closeModal()">Delete</button></div>`:''}</div>`)}
 function openEditExpense(id){pendingEditReceiptUrl=null;edCat=null;let e=cur.expenses.find(x=>x.id===id);if(!e||!canEditExpense(e))return toast('Only the creator can edit this expense');let c=e.currency||'SGD',view=fxView(c,e.fxRate||1),fx=c==='SGD'?'<div class="muted">No exchange rate needed for SGD.</div>':`<div class="fxbox"><div class="row"><div class="grow"><div class="k">Exchange rate</div><b>${esc(view.text)}</b></div><input class="field" id="edFxRate" type="number" inputmode="decimal" step="0.0001" value="${view.value}" data-dir="${view.dir}" oninput="updateFxPreview('ed')" style="width:124px"></div><div class="muted" id="edFxPreview" style="margin-top:8px"></div></div>`;const edDate=e.date||(e.at||'').slice(0,10)||todayStr();modal(`<h2>Edit expense</h2><input class="field" id="edDesc" value="${esc(e.desc)}"><div id="edCatGrid" style="margin-top:8px">${(()=>{const cur_cat=e.cat||CATS[7];return CATS.map(function(c,i){var on=c===cur_cat?' on':'';return '<button type="button" class="catPill'+on+'" onclick="edCat=CATS['+i+'];'+"[].slice.call(document.querySelectorAll('#edCatGrid .catPill')).forEach(function(b,j){b.classList.toggle('on',j==="+i+")})\">"+ c+'</button>';}).join('');})()}</div><input class="field" id="edDate" type="date" value="${edDate}" style="margin:8px 0"><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><button type="button" class="btn ghost" onclick="document.getElementById('receiptCameraEdit').click()" style="display:flex;align-items:center;justify-content:center;gap:6px">📷 Take photo</button><button type="button" class="btn ghost" onclick="document.getElementById('receiptGalleryEdit').click()" style="display:flex;align-items:center;justify-content:center;gap:6px">🖼 Gallery</button></div><div id="editReceiptPreview">${e.receiptUrl?`<div class="fxbox row" style="margin-bottom:8px"><img class="thumb" src="${e.receiptUrl}" onclick="openReceipt('${id}')" style="cursor:pointer"><div><b>Receipt attached</b><div class="muted" style="font-size:.75rem">Tap to view</div></div><button class="btn ghost mini" style="margin-left:auto" onclick="pendingEditReceiptUrl='';$('editReceiptPreview').innerHTML=''">Remove</button></div>`:''}</div><div class="grid2" style="margin-bottom:10px"><input class="field" id="edAmt" type="number" inputmode="decimal" step="0.01" value="${esc(e.originalAmount)}" oninput="updateFxPreview('ed')">${selectWrap('edCur',ccyOptions(c),'onchange="editCurrencyChanged()"')}</div><div id="edFxPanel">${fx}</div><div style="height:10px"></div>${selectWrap('edPaidBy',paidOptions(e.paidBy))}${splitBox(e,'ed')}<div style="height:10px"></div><button class="btn" style="width:100%" onclick="saveExpenseEdit('${id}')">Save expense</button>`);updateFxPreview('ed')}
 async function editCurrencyChanged(){let c=$('edCur').value;if(c==='SGD'){$('edFxPanel').innerHTML='<div class="muted">No exchange rate needed for SGD.</div>';return}let fx=await getRate(c),view=fxView(c,fx.rate);$('edFxPanel').innerHTML=`<div class="fxbox"><div class="row"><div class="grow"><div class="k">Exchange rate</div><b>${esc(view.text)}</b></div><input class="field" id="edFxRate" type="number" inputmode="decimal" step="0.0001" value="${view.value}" data-dir="${view.dir}" oninput="updateFxPreview('ed')" style="width:124px"></div><div class="muted" id="edFxPreview" style="margin-top:8px"></div></div>`;updateFxPreview('ed')}
-async function saveExpenseEdit(id){let e=cur.expenses.find(x=>x.id===id),raw=+$('edAmt').value,ccy=$('edCur').value,d=$('edDesc').value.trim();if(!e||!d||!raw)return toast('Description and amount needed');let rate=ccy==='SGD'?1:rawRateFromDisplay(($('edFxRate')||{}).value,($('edFxRate')||{}).dataset?.dir),sgd=ccy==='SGD'?raw:raw*rate,split=collectSplits(sgd,'ed');if(split===false)return;const dateVal=$('edDate')?.value||e.date||todayStr();if(pendingEditReceiptUrl!==null)e.receiptUrl=pendingEditReceiptUrl;pendingEditReceiptUrl=null;if(edCat)e.cat=edCat;Object.assign(e,{desc:d,amount:sgd,originalAmount:raw,currency:ccy,fxRate:rate,paidBy:$('edPaidBy').value,splitMode:split.mode,splits:split.splits,date:dateVal,at:new Date(dateVal+'T12:00:00').toISOString()});closeModal();await push(cur);renderTrip()}
-function delExp(id){let e=cur.expenses.find(x=>x.id===id);if(!e||!canEditExpense(e))return toast('Only the creator can delete this expense');cur.expenses=cur.expenses.filter(e=>e.id!==id);push(cur);renderTrip()}
+async function saveExpenseEdit(id){let e=cur.expenses.find(x=>x.id===id),raw=+$('edAmt').value,ccy=$('edCur').value,d=$('edDesc').value.trim();if(!e||!d||!raw)return toast('Description and amount needed');let rate=ccy==='SGD'?1:rawRateFromDisplay(($('edFxRate')||{}).value,($('edFxRate')||{}).dataset?.dir),sgd=ccy==='SGD'?raw:raw*rate,split=collectSplits(sgd,'ed');if(split===false)return;const dateVal=$('edDate')?.value||e.date||todayStr();if(pendingEditReceiptUrl!==null)e.receiptUrl=pendingEditReceiptUrl;pendingEditReceiptUrl=null;if(edCat)e.cat=edCat;Object.assign(e,{desc:d,amount:sgd,originalAmount:raw,currency:ccy,fxRate:rate,paidBy:$('edPaidBy').value,splitMode:split.mode,splits:split.splits,date:dateVal,at:new Date(dateVal+'T12:00:00').toISOString(),updatedAt:new Date().toISOString()});closeModal();await push(cur);renderTrip()}
+function delExp(id){let e=cur.expenses.find(x=>x.id===id);if(!e||!canEditExpense(e))return toast('Only the creator can delete this expense');cur.expenses=cur.expenses.filter(e=>e.id!==id);cur.tombstones=cur.tombstones||{ex:{},mem:{}};cur.tombstones.ex[id]=new Date().toISOString();push(cur);renderTrip()}
 function balances(includeSettled=true){let ids=memberList().map(([id])=>id),b={};ids.forEach(id=>b[id]=0);(cur.expenses||[]).forEach(e=>{ids.forEach(id=>b[id]-=e.splits?+(e.splits[id]||0):e.amount/ids.length);b[e.paidBy]=(b[e.paidBy]||0)+e.amount});if(includeSettled)(cur.settlements||[]).filter(s=>s.paidAt).forEach(s=>{b[s.from]+=s.amount;b[s.to]-=s.amount});return b}
 function transfers(){let b=balances(),debt=[],cred=[];Object.entries(b).forEach(([id,a])=>{if(a<-0.005)debt.push({id,a:-a});if(a>0.005)cred.push({id,a})});debt.sort((a,b)=>b.a-a.a);cred.sort((a,b)=>b.a-a.a);let out=[],i=0,j=0;while(i<debt.length&&j<cred.length){let a=Math.min(debt[i].a,cred[j].a);out.push({from:debt[i].id,to:cred[j].id,amount:a});debt[i].a-=a;cred[j].a-=a;if(debt[i].a<.005)i++;if(cred[j].a<.005)j++}return out}
 function settleText(tr){return `<div class="settleLine"><span>${esc(memberName(tr.from))}</span><span class="settleArrow">→</span><b>${esc(memberName(tr.to))}</b></div>`}
-function openSettlementProof(i){let s=(cur.settlements||[]).filter(x=>x.paidAt)[i];if(!s?.receiptUrl)return toast('No payment proof attached');modal(`<h2>Payment proof</h2><img class="receiptLarge" src="${s.receiptUrl}"><div class="card" style="margin-top:10px"><div class="row"><div class="grow"><b>${esc(memberName(s.from))} → ${esc(memberName(s.to))}</b><div class="muted">${esc((s.paidAt||'').slice(0,16).replace('T',' '))}</div></div><div class="amount">${money(s.amount)}</div></div></div>`)}
-function renderBalances(){let trs=transfers(),settled=(cur.settlements||[]).filter(s=>s.paidAt),settledRows=settled.map((s,i)=>`<div class="expense row" style="gap:10px" ${s.receiptUrl?`onclick="openSettlementProof(${i})"`:''}>${s.receiptUrl?`<img class="thumb" src="${s.receiptUrl}">`:av(s.from)}<div class="grow"><b>${esc(memberName(s.from))} → ${esc(memberName(s.to))}</b><div class="muted">${esc((s.paidAt||'').slice(0,16).replace('T',' '))}${s.receiptUrl?' · proof attached':''}</div></div><b class="good">${money(s.amount)}</b></div>`).join('');return `<div class="card"><div class="k">Settle</div>${trs.length?'<div style="font-size:.83rem;margin:6px 0 8px;color:var(--accent);font-weight:600">Tap a row to open PayNow QR or mark as paid</div>':''}${trs.map((tr,i)=>`<div class="pay row settleRow" onclick="openSettle(${i})">${av(tr.from)}<span class="settleFromName">${esc(memberName(tr.from))}</span><span class="settleArrow">→</span>${av(tr.to)}<b class="settleToName grow">${esc(memberName(tr.to))}</b><b class="good settleAmt">${money(tr.amount)}</b></div>`).join('')||'<div class="muted">All settled.</div>'}</div>${settled.length?`<div class="card"><div class="k">Settled payments</div>${settledRows}</div>`:''}`}
+function openSettlementProof(id){let s=(cur.settlements||[]).find(x=>x.paidAt&&(x.id||slSettleId(x))===id);if(!s?.receiptUrl)return toast('No payment proof attached');modal(`<h2>Payment proof</h2><img class="receiptLarge" src="${s.receiptUrl}"><div class="card" style="margin-top:10px"><div class="row"><div class="grow"><b>${esc(memberName(s.from))} → ${esc(memberName(s.to))}</b><div class="muted">${esc((s.paidAt||'').slice(0,16).replace('T',' '))}</div></div><div class="amount">${money(s.amount)}</div></div></div>`)}
+function renderBalances(){let trs=transfers(),settled=(cur.settlements||[]).filter(s=>s.paidAt),settledRows=settled.map((s,i)=>`<div class="expense row" style="gap:10px" ${s.receiptUrl?`onclick="openSettlementProof('${esc(s.id||slSettleId(s))}')"`:''}>${s.receiptUrl?`<img class="thumb" src="${s.receiptUrl}">`:av(s.from)}<div class="grow"><b>${esc(memberName(s.from))} → ${esc(memberName(s.to))}</b><div class="muted">${esc((s.paidAt||'').slice(0,16).replace('T',' '))}${s.receiptUrl?' · proof attached':''}</div></div><b class="good">${money(s.amount)}</b></div>`).join('');return `<div class="card"><div class="k">Settle</div>${trs.length?'<div style="font-size:.83rem;margin:6px 0 8px;color:var(--accent);font-weight:600">Tap a row to open PayNow QR or mark as paid</div>':''}${trs.map((tr,i)=>`<div class="pay row settleRow" onclick="openSettle(${i})">${av(tr.from)}<span class="settleFromName">${esc(memberName(tr.from))}</span><span class="settleArrow">→</span>${av(tr.to)}<b class="settleToName grow">${esc(memberName(tr.to))}</b><b class="good settleAmt">${money(tr.amount)}</b></div>`).join('')||'<div class="muted">All settled.</div>'}</div>${settled.length?`<div class="card"><div class="k">Settled payments</div>${settledRows}</div>`:''}`}
 function memberInUse(id){return (cur.expenses||[]).some(e=>e.paidBy===id||e.createdBy===id||(e.splits&&+e.splits[id]>0))||(cur.settlements||[]).some(s=>s.from===id||s.to===id)}
-function removeMember(id){if(!isOwner())return toast('Only the owner can remove members');if(id===cur.ownerId)return toast('Trip owner cannot be removed');if(memberInUse(id))return toast('Cannot remove member with expenses or settlements');delete cur.members[id];push(cur);renderTrip()}
+function removeMember(id){if(!isOwner())return toast('Only the owner can remove members');if(id===cur.ownerId)return toast('Trip owner cannot be removed');if(memberInUse(id))return toast('Cannot remove member with expenses or settlements');delete cur.members[id];cur.tombstones=cur.tombstones||{ex:{},mem:{}};cur.tombstones.mem[id]=new Date().toISOString();push(cur);renderTrip()}
 function renderMembers(){let add=isOwner()&&!isClosed(cur)?`<div class="card row" style="gap:8px"><input class="field grow" id="memberName" placeholder="Member name"><input class="field" id="paynow" inputmode="tel" placeholder="PayNow" style="width:120px;flex:0 0 120px"><button class="btn" style="flex:0 0 auto;padding:13px 14px" onclick="addMember()">Add</button></div>`:'';return `${add}<div class="card">${memberList().map(([id,m])=>{let paid=(cur.expenses||[]).filter(e=>e.paidBy===id).reduce((s,e)=>s+e.amount,0);let canRemove=isOwner()&&id!==cur.ownerId&&!memberInUse(id);const isMe=id===me(),isOwn=id===cur.ownerId,hasPN=!!m.paynowProxy;const badge=isMe?'You':isOwn?'Owner':'';return `<div class="expense row" style="gap:10px;padding:11px 0;align-items:center">${av(id)}<div class="grow" style="min-width:0"><span style="font-weight:700">${esc(m.name)}</span>${badge?` <span style="font-size:.65rem;font-weight:700;background:${isMe?'rgba(14,163,113,.25)':'rgba(255,255,255,.1)'};color:${isMe?'var(--accent)':'var(--muted)'};border-radius:999px;padding:2px 7px;margin-left:2px">${badge}</span>`:''}${hasPN?` <span style="font-size:.65rem;font-weight:600;color:var(--muted);opacity:.7">· PayNow</span>`:''}</div><b class="good" style="flex:0 0 auto">${money(paid)}</b>${isOwner()?`<button class="btn ghost" style="padding:6px 10px;font-size:.72rem;flex:0 0 auto" onclick="openMemberEdit('${id}')">Edit</button>${canRemove?`<button class="btn ghost" style="padding:6px 10px;font-size:.72rem;flex:0 0 auto;color:var(--bad);border-color:var(--bad)" onclick="removeMember('${id}')">✕</button>`:''}`:''}</div>`;}).join('')}</div>`}
-function addMember(){let n=$('memberName').value.trim();if(!n)return;cur.members['m_'+uid()]={name:n,avatarColor:colors[memberList().length%colors.length],paynowProxy:normalizePayNowProxy($('paynow').value)};push(cur);renderTrip()}
+function addMember(){let n=$('memberName').value.trim();if(!n)return;cur.members['m_'+uid()]={name:n,avatarColor:colors[memberList().length%colors.length],paynowProxy:normalizePayNowProxy($('paynow').value),updatedAt:new Date().toISOString()};push(cur);renderTrip()}
 function openMemberEdit(id){if(!isOwner())return toast('Only the owner can edit members');let m=cur.members[id];if(!m)return;modal(`<h2>Edit member</h2><label class="muted">Name</label><input class="field" id="editMemberName" value="${esc(m.name)}"><div style="height:10px"></div><label class="muted">PayNow proxy</label><input class="field" id="editMemberPaynow" inputmode="tel" value="${esc(m.paynowProxy||'')}" placeholder="Optional"><div style="height:10px"></div><button class="btn" style="width:100%" onclick="saveMemberEdit('${id}')">Save member</button>`)}
-async function saveMemberEdit(id){if(!isOwner())return;let m=cur.members[id],name=$('editMemberName').value.trim();if(!m||!name)return toast('Member name needed');m.name=name;m.paynowProxy=normalizePayNowProxy($('editMemberPaynow').value);if(id===me()){state.name=name;state.paynowProxy=m.paynowProxy;save()}closeModal();await push(cur);renderTrip()}
+async function saveMemberEdit(id){if(!isOwner())return;let m=cur.members[id],name=$('editMemberName').value.trim();if(!m||!name)return toast('Member name needed');m.name=name;m.paynowProxy=normalizePayNowProxy($('editMemberPaynow').value);m.updatedAt=new Date().toISOString();if(id===me()){state.name=name;state.paynowProxy=m.paynowProxy;save()}closeModal();await push(cur);renderTrip()}
 function openTripEdit(){if(!isOwner())return toast('Only the owner can edit this trip');modal(`<h2>Edit trip</h2><label class="muted">Trip name</label><input class="field" id="editTripName" value="${esc(cur.name)}"><div style="height:10px"></div><label class="muted">Default currency</label>${selectWrap('editTripCur',ccyOptions(cur.currency),'',true)}<div style="height:10px"></div><button class="btn" style="width:100%" onclick="saveTripEdit()">Save trip</button><button class="btn bad" style="width:100%;margin-top:10px" onclick="openTripDelete()">Delete trip</button>`)}
-async function saveTripEdit(){if(!isOwner())return;let name=$('editTripName').value.trim();if(!name)return toast('Trip name needed');cur.name=name;cur.currency=$('editTripCur').value;closeModal();await push(cur);renderTrip()}
+async function saveTripEdit(){if(!isOwner())return;let name=$('editTripName').value.trim();if(!name)return toast('Trip name needed');cur.name=name;cur.metaAt=new Date().toISOString();cur.currency=$('editTripCur').value;closeModal();await push(cur);renderTrip()}
 function openTripDelete(){if(!isOwner())return toast('Only the owner can delete this trip');modal(`<h2>Delete trip?</h2><p class="muted">This hides the trip for everyone using this build. The shared backend keeps a small deletion marker so old invite links stop reopening it.</p><button class="btn bad" style="width:100%" onclick="confirmDeleteTrip()">Delete trip</button><button class="btn ghost" style="width:100%;margin-top:10px" onclick="closeModal()">Keep trip</button>`)}
 async function confirmDeleteTrip(){if(!isOwner())return;const code=cur.code;cur.deletedAt=new Date().toISOString();cur.deletedBy=me();await push(cur);toTrash(code,'deleted by you');closeModal();toast('Trip deleted');goHome()}
 function openTripManage(){if(!isOwner())return toast('Only owners can manage trip status');const st=cur.status||'active';const stateRow=(emoji,title,desc,active,accent)=>`<div class="card" style="padding:12px;margin-bottom:8px${active?(';border-color:'+accent+';background:'+accent+'18'):''}"><div class="row" style="gap:10px;align-items:flex-start"><span style="font-size:1.5rem;flex:0 0 auto;line-height:1.1">${emoji}</span><div class="grow"><div style="font-weight:800;font-size:1rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${title}${active?'<span class="pill" style="font-size:.65rem;padding:3px 8px">CURRENT</span>':''}</div><div class="muted" style="font-size:.88rem;margin-top:4px;line-height:1.35">${desc}</div></div></div></div>`;let actions='';if(st==='active'){actions=`<button class="btn receiptBtn" style="background:#e8a820" onclick="confirmCloseTrip()">🔒 Close this trip</button><button class="btn ghost receiptBtn" onclick="closeModal()">Cancel</button>`;}else if(st==='closed'){actions=`<button class="btn receiptBtn" onclick="reopenTripAction()">↩ Reopen trip</button><button class="btn ghost receiptBtn" style="color:var(--muted)" onclick="archiveTripAction()">📦 Archive trip</button><button class="btn ghost receiptBtn" onclick="closeModal()">Cancel</button>`;}else if(st==='archived'){actions=`<button class="btn receiptBtn" onclick="reopenTripAction()">↩ Unarchive & reopen</button><button class="btn ghost receiptBtn" onclick="closeModal()">Cancel</button>`;}modal(`<h2>Trip status</h2><p class="muted" style="font-size:.88rem;margin:0 0 12px">Trips have three states. Only the owner can change them.</p>${stateRow('🟢','Active','Members can add and edit expenses, and settle balances. This is the default.',st==='active','#1d9e75')}${stateRow('🔒','Closed','No more expenses can be added or edited. Settlements still work. Use this once the trip is over and balances are agreed.',st==='closed','#e8a820')}${stateRow('📦','Archived','Hidden from your main trip list to keep it clean. Tap the "Archived" toggle on the home screen to find it.',st==='archived','#888888')}<div style="height:6px"></div>${actions}`)}
@@ -564,12 +727,21 @@ function crc16(raw){let crc=0xFFFF;for(let i=0;i<raw.length;i++){crc^=raw.charCo
 function buildPayNowQR(proxy,amount,name){proxy=normalizePayNowProxy(proxy);let type=proxy.startsWith('+65')?'0':'2',mai=tlv('00','SG.PAYNOW')+tlv('01',type)+tlv('02',proxy)+tlv('03','0');let raw=[tlv('00','01'),tlv('01','12'),tlv('26',mai),tlv('52','0000'),tlv('53','702'),tlv('54',(+amount).toFixed(2)),tlv('58','SG'),tlv('59',(name||'PAYNOW').slice(0,25)),tlv('60','Singapore'),'6304'].join('');return raw+crc16(raw).toString(16).toUpperCase().padStart(4,'0')}
 function openSettle(i,hist=true){pendingSettleReceiptUrl=null;settleTarget=transfers()[i];$('payFromAv').outerHTML=av(settleTarget.from).replace('class="av"','class="av" id="payFromAv"');$('payToAv').outerHTML=av(settleTarget.to).replace('class="av"','class="av" id="payToAv"');$('payFromName').textContent=memberName(settleTarget.from)+' pays';$('payToName').textContent='to '+memberName(settleTarget.to);$('payAmt').textContent=money(settleTarget.amount);let payee=cur.members[settleTarget.to],payBlock=payee.paynowProxy?`<div class="qrHint"><div class="qrFrame"><div id="qr" class="qr" onclick="saveQrImage()"></div></div></div><button class="btn ghost" style="width:100%" onclick="saveQrImage()">Save QR image</button><div style="text-align:center;margin-top:10px" class="muted">Scan with PayNow<br><b class="good">${esc(normalizePayNowProxy(payee.paynowProxy))}</b><br>${esc(money(settleTarget.amount))}</div>`:`<p class="muted">${esc(memberName(settleTarget.to))} has no PayNow proxy yet. Transfer manually, then record it below.</p>`;$('payCard').innerHTML=`<div class="k">Step 1 · Pay ${esc(memberName(settleTarget.to))}</div>${payBlock}<div class="fxbox"><div class="k">Step 2 · Attach payment proof</div><div class="muted" style="margin:6px 0 10px">Optional, but useful for trip receipts and review.</div><div class="grid2"><button type="button" class="btn ghost" onclick="document.getElementById('settleReceiptCamera').click()">Take photo</button><button type="button" class="btn ghost" onclick="document.getElementById('settleReceiptGallery').click()">Gallery</button></div><div id="settleReceiptPreview"></div></div><div class="fxbox"><div class="k">Step 3 · Record payment</div><div class="muted" style="margin-top:6px">Only tap once the transfer is done. This removes it from outstanding balances for everyone.</div></div>`;let btn=$('markPaidBtn');if(btn)btn.textContent='I have paid';go('settle');if(hist&&cur)pushNav({view:'settle',code:cur.code,tab:'balances'});setTimeout(()=>{if(payee.paynowProxy&&window.QRCode){new QRCode($('qr'),{text:buildPayNowQR(payee.paynowProxy,settleTarget.amount,memberName(settleTarget.to)),width:320,height:320})}},50)}
 function saveQrImage(){let el=$('qr')?.querySelector('canvas,img');if(!el)return toast('QR not ready');let out=document.createElement('canvas'),size=1024,border=72,quiet=96;out.width=size;out.height=size;let ctx=out.getContext('2d');ctx.fillStyle='#1d9e75';ctx.fillRect(0,0,size,size);ctx.fillStyle='#fff';ctx.fillRect(border,border,size-border*2,size-border*2);ctx.drawImage(el,border+quiet,border+quiet,size-(border+quiet)*2,size-(border+quiet)*2);let a=document.createElement('a');a.href=out.toDataURL('image/png');a.download='splitlah-paynow-'+(cur?.code||'qr')+'.png';a.click();toast('QR image saved')}
-function markPaid(){if(!settleTarget)return;let proof=pendingSettleReceiptUrl||'';cur.settlements.push({...settleTarget,paidAt:new Date().toISOString(),receiptUrl:proof});pendingSettleReceiptUrl=null;push(cur);$('paidText').textContent=`${money(settleTarget.amount)} · ${memberName(settleTarget.from)} → ${memberName(settleTarget.to)}`;let total=cur.settlements.length+transfers().length,proofHtml=proof?`<div class="fxbox row" style="justify-content:center"><img class="thumb" src="${proof}"><div style="text-align:left"><b>Payment proof saved</b><div class="muted" style="font-size:.75rem">Attached to this settlement</div></div></div>`:'';$('paidProgress').innerHTML=`${proofHtml}<div class="card" style="text-align:left"><div class="k">Trip progress</div><div class="v">${cur.settlements.length} of ${total} settled</div><div class="bar"><div class="fill" style="width:${total?cur.settlements.length/total*100:100}%"></div></div></div>`;go('paid');if(cur)pushNav({view:'paid',code:cur.code,tab:'balances'})}
+function markPaid(){if(!settleTarget)return;let proof=pendingSettleReceiptUrl||'';let _pa=new Date().toISOString();
+  /* identity is the transfer (from|to|amount), NOT paidAt: two members tapping
+     'I have paid' for the same transfer stamp different milliseconds, so a
+     paidAt-based id would let the merge keep both and double-count the money.
+     slSettleId (full paidAt) stays for backfilling legacy rows, where collapsing
+     two historical settlements would itself be a data change. The date suffix is
+     the compromise: two people tapping the same transfer merge, two genuine
+     payments on different days do not. Same pair, same amount, same day is the
+     residual case, and merging there beats double-counting the money. */
+  cur.settlements.push({...settleTarget,id:'s_'+[settleTarget.from,settleTarget.to,settleTarget.amount,_pa.slice(0,10)].join('|'),paidAt:_pa,updatedAt:_pa,receiptUrl:proof});pendingSettleReceiptUrl=null;push(cur);$('paidText').textContent=`${money(settleTarget.amount)} · ${memberName(settleTarget.from)} → ${memberName(settleTarget.to)}`;let total=cur.settlements.length+transfers().length,proofHtml=proof?`<div class="fxbox row" style="justify-content:center"><img class="thumb" src="${proof}"><div style="text-align:left"><b>Payment proof saved</b><div class="muted" style="font-size:.75rem">Attached to this settlement</div></div></div>`:'';$('paidProgress').innerHTML=`${proofHtml}<div class="card" style="text-align:left"><div class="k">Trip progress</div><div class="v">${cur.settlements.length} of ${total} settled</div><div class="bar"><div class="fill" style="width:${total?cur.settlements.length/total*100:100}%"></div></div></div>`;go('paid');if(cur)pushNav({view:'paid',code:cur.code,tab:'balances'})}
 function tripUrl(memberId=''){return location.origin+location.pathname+'?join='+cur.code+(memberId?'&member='+encodeURIComponent(memberId):'')}
 function shareTrip(){modal(`<h2>Share trip</h2><button class="btn receiptBtn" onclick="shareGroupInvite()">Share group invite</button><button class="btn ghost receiptBtn" onclick="openMemberInvite()">Invite specific person</button><button class="btn ghost receiptBtn" onclick="copyShare(tripUrl())">Copy invite link</button>${isOwner()?'<p class="muted" style="font-size:.82rem;margin-top:14px;text-align:center">Trip status (close/archive) lives in <b>MANAGE</b>.</p>':''}`)}
-async function closeTripAction(){if(!isOwner())return;cur.status='closed';await push(cur);closeModal();renderTrip();toast('Trip closed')}
-async function reopenTripAction(){if(!isOwner())return;cur.status='active';await push(cur);closeModal();renderTrip();toast('Trip reopened')}
-async function archiveTripAction(){if(!isOwner())return;cur.status='archived';await push(cur);closeModal();renderHome();goHome();toast('Trip archived')}
+async function closeTripAction(){if(!isOwner())return;cur.status='closed';cur.metaAt=new Date().toISOString();await push(cur);closeModal();renderTrip();toast('Trip closed')}
+async function reopenTripAction(){if(!isOwner())return;cur.status='active';cur.metaAt=new Date().toISOString();await push(cur);closeModal();renderTrip();toast('Trip reopened')}
+async function archiveTripAction(){if(!isOwner())return;cur.status='archived';cur.metaAt=new Date().toISOString();await push(cur);closeModal();renderHome();goHome();toast('Trip archived')}
 function openShare(){shareTrip()}
 function shareGroupInvite(){shareNative(tripUrl(),'Join our SplitLah trip '+cur.name)}
 function openMemberInvite(){let rows=memberList().map(([id,m])=>`<div class="expense row">${av(id)}<div class="grow"><b>${esc(m.name)}</b><div class="muted">Send a direct claim link</div></div><button class="btn ghost" onclick="shareMemberInvite('${esc(id)}')">Invite</button></div>`).join('');modal(`<h2>Invite specific person</h2><p class="muted">Use this when you already added someone and want their link to suggest that member.</p><div class="card">${rows}</div><button class="btn ghost" style="width:100%" onclick="shareTrip()">Back</button>`)}
