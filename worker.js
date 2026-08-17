@@ -641,6 +641,42 @@ export default {
         return json({ ok: true, deleted: true, note: 'Trips are shared with other members and were not deleted.' });
       }
 
+      const patchHit = url.pathname.match(/^\/trips\/([A-Z0-9]{6})\/patch$/);
+      if (patchHit) {
+        if (request.method !== 'POST') return json({ error: 'Method not allowed' }, 405);
+        const code = patchHit[1];
+        if (RESERVED_CODES.has(code)) return json({ error: 'Trip not found' }, 404);
+        const body = await request.json().catch(() => null);
+        if (!body || typeof body !== 'object') return json({ error: 'Invalid patch' }, 400);
+        const incoming = { code, updated_at: body.updated_at || new Date().toISOString() };
+        if (Array.isArray(body.expenses)) incoming.expenses = body.expenses;
+        if (Array.isArray(body.settlements)) incoming.settlements = body.settlements;
+        if (body.members && typeof body.members === 'object' && !Array.isArray(body.members)) incoming.members = body.members;
+        if (body.tombstones && typeof body.tombstones === 'object') incoming.tombstones = body.tombstones;
+        if (body.metaAt) {
+          incoming.metaAt = body.metaAt;
+          if (body.name !== undefined) incoming.name = body.name;
+          if (body.status !== undefined) incoming.status = body.status;
+          if (body.currency !== undefined) incoming.currency = body.currency;
+          if (body.ownerId !== undefined) incoming.ownerId = body.ownerId;
+        }
+        if (body.deletedAt) { incoming.deletedAt = body.deletedAt; incoming.deletedBy = body.deletedBy; }
+        if (body.undeletedAt) incoming.undeletedAt = body.undeletedAt;
+        for (let attempt = 0; attempt < 5; attempt++) {
+          const prior = await sql`select data from trips where code = ${code}`;
+          if (!prior.length) return json({ error: 'Trip not found' }, 404);
+          const priorRev = Math.floor(Number(prior[0].data && prior[0].data.rev)) || 0;
+          const merged = slMergeTrips(prior[0].data, incoming);
+          merged.rev = priorRev + 1;
+          const upd = await sql`
+            update trips set data = ${JSON.stringify(merged)}::jsonb, updated_at = now()
+            where code = ${code} and coalesce((data->>'rev')::int, 0) = ${priorRev}
+            returning data`;
+          if (upd.length) return json({ trip: upd[0].data });
+        }
+        return json({ error: 'Trip is busy, please retry' }, 409);
+      }
+
       const code = codeFromPath(url.pathname);
       if (!code) return json({ error: 'Not found' }, 404);
       if (RESERVED_CODES.has(code)) return json({ error: 'Trip not found' }, 404);

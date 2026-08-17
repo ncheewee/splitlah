@@ -62,6 +62,19 @@ function makeEnv(opts = {}) {
             return jr({ trip: JSON.parse(J(trip)) }, 200);
           }
         }
+        const pm = u.match(/\/trips\/([A-Z0-9]{6})\/patch$/);
+        if (pm && method === 'POST') {
+          const code = pm[1];
+          if (!server[code]) return jr({ error: 'Trip not found' }, 404);
+          const p = JSON.parse(init.body), t = server[code];
+          if (p.expenses) {
+            const by = {}; (t.expenses || []).forEach(e => { if (e && e.id) by[e.id] = e; });
+            p.expenses.forEach(e => { if (e && e.id) by[e.id] = e; });
+            t.expenses = Object.values(by);
+          }
+          t.updated_at = new Date().toISOString();
+          return jr({ trip: JSON.parse(J(t)) }, 200);
+        }
         return jr({ error: 'Not found' }, 404);
       };
       if (opts.offline) Object.defineProperty(w.navigator, 'onLine', { configurable: true, value: false });

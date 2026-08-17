@@ -178,8 +178,12 @@ Root causes 1–4 above are addressed. `slMergeTrips` lives byte-identically in
 Suites: `merge_parity`, `test_concurrent_edits` (replays the 16 Aug incident and
 the Safari clobber), plus the existing `test_trip_loss`, `smoke`, `version_check`.
 
+**v76:** existing trips flush a sparse `POST /trips/:code/patch` — only items
+stamped after `syncedStamp`. Create still uses whole-document PUT. Pre-v76
+clients keep PUTting; the worker still merges. Receipts that are `data:` URLs
+still travel with that one new expense.
+
 **Known, not fixed:** `removeMember`'s in-use guard is still local-only (the merge
 now prevents the resulting orphan, but the UI can still offer the removal); pre-v65
 expenses have no true edit time, so two divergent copies tie and resolve
-arbitrarily; every PUT still ships the whole trip including inline base64 receipts
-(~1.5 MB for JB Shenanigans).
+arbitrarily; receipts are still inline on the expense they belong to.

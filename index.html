@@ -62,7 +62,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){const th=localStorage.getItem('sl_theme');const fs=localStorage.getItem('sl_fs');if(th==='light')document.body.classList.add('light');if(fs)document.documentElement.style.setProperty('--fs',fs+'px')})();
-const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=75;
+const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=76;
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.vTag').forEach(el=>el.textContent='v'+APP_VERSION)});
 const CATS=['🍜 Food','🏨 Stay','🚌 Transport','🎡 Activities','🛍 Shopping','🌃 Nightlife','💊 Health','★ Other'];
 let dashChart='flow',expCat=7;
@@ -274,26 +274,48 @@ function slMergeTrips(a, b) {
 }
 /* ---- end trip merge --------------------------------------------------------- */
 
-const LOCAL_FIELDS=['pendingSync','syncedAt','missingSince'];let _outSeq=0;
+const LOCAL_FIELDS=['pendingSync','syncedAt','missingSince','syncedStamp'];let _outSeq=0;
 function forServer(t){let c=Object.assign({},t);LOCAL_FIELDS.forEach(k=>delete c[k]);return c}
 function markLocal(code){let t=state.trips[code];if(t){t.pendingSync=true}if(!state.outbox)state.outbox={};state.outbox[code]=Date.now()+'#'+(++_outSeq)}
-function markSynced(code,t){t.pendingSync=false;t.syncedAt=new Date().toISOString();delete t.missingSince;if(state.outbox)delete state.outbox[code];return t}
+function markSynced(code,t){t.pendingSync=false;t.syncedAt=new Date().toISOString();t.syncedStamp=new Date().toISOString();delete t.missingSince;if(state.outbox)delete state.outbox[code];return t}
 function toTrash(code,reason){let t=state.trips[code];if(!t)return;if(!state.trash)state.trash={};state.trash[code]={trip:t,at:new Date().toISOString(),reason:reason||'removed'};delete state.trips[code];if(state.outbox)delete state.outbox[code];save()}
 function adoptServer(code,serverTrip,queuedAt){let local=state.trips[code];
   /* trashed mid-flight: writing the server copy back would resurrect the trip AND
      permanently shadow its trash entry, since recoverableTrips() skips live codes */
   if(!local){if(state.outbox)delete state.outbox[code];return null}
   let t=normalizeTrip(local?slMergeTrips(normalizeTrip(serverTrip),normalizeTrip(local)):normalizeTrip(serverTrip));
-  if(state.outbox&&state.outbox[code]&&state.outbox[code]!==queuedAt){t.pendingSync=true}
-  else{t.pendingSync=false;t.syncedAt=new Date().toISOString();delete t.missingSince;if(state.outbox)delete state.outbox[code]}
+  if(state.outbox&&state.outbox[code]&&state.outbox[code]!==queuedAt){t.pendingSync=true;t.syncedStamp=local.syncedStamp}
+  else{t.pendingSync=false;t.syncedAt=new Date().toISOString();t.syncedStamp=new Date().toISOString();delete t.missingSince;if(state.outbox)delete state.outbox[code]}
   state.trips[code]=t;if(cur&&cur.code===code)cur=t;return t}
+function tripDirty(o,since){let s=slStamp(o);return !s||s>since}
+function tripPatch(t){
+  t=normalizeTrip(t);let since=slIso(t.syncedStamp),now=new Date().toISOString(),p={code:t.code,updated_at:t.updated_at||now};
+  let ex=(t.expenses||[]).filter(e=>tripDirty(e,since));ex.forEach(e=>{if(!e.updatedAt)e.updatedAt=now});if(ex.length)p.expenses=ex;
+  let se=(t.settlements||[]).filter(s=>tripDirty(s,since));se.forEach(s=>{if(!s.updatedAt)s.updatedAt=now});if(se.length)p.settlements=se;
+  let mem={};Object.entries(t.members||{}).forEach(([id,m])=>{if(slStamp(m)>since)mem[id]=m});if(Object.keys(mem).length)p.members=mem;
+  let tombs={ex:{},mem:{}};Object.entries((t.tombstones&&t.tombstones.ex)||{}).forEach(([id,at])=>{if(slIso(at)>since)tombs.ex[id]=at});
+  Object.entries((t.tombstones&&t.tombstones.mem)||{}).forEach(([id,at])=>{if(slIso(at)>since)tombs.mem[id]=at});
+  if(Object.keys(tombs.ex).length||Object.keys(tombs.mem).length)p.tombstones=tombs;
+  if(t.metaAt&&slIso(t.metaAt)>since){p.metaAt=t.metaAt;p.name=t.name;p.status=t.status;p.currency=t.currency;p.ownerId=t.ownerId}
+  if(t.deletedAt&&slIso(t.deletedAt)>since){p.deletedAt=t.deletedAt;p.deletedBy=t.deletedBy}
+  if(t.undeletedAt&&slIso(t.undeletedAt)>since)p.undeletedAt=t.undeletedAt;
+  return p}
+function patchHasWork(p){return !!(p.expenses||p.settlements||p.members||p.tombstones||p.metaAt||p.deletedAt||p.undeletedAt)}
+async function sendTrip(t){
+  t=normalizeTrip(t);
+  if(t.syncedAt||t.rev){
+    let p=tripPatch(t);
+    if(!patchHasWork(p))return {trip:forServer(t)};
+    try{return await api('/trips/'+t.code+'/patch','POST',p)}
+    catch(e){if(e.status===404)return api('/trips/'+t.code,'PUT',forServer(t));throw e}}
+  return api('/trips/'+t.code,'PUT',forServer(t))}
 function repaintTrip(code){try{if(!cur||cur.code!==code)return;
   if(document.getElementById('modal').classList.contains('on'))return;
   if(activeFormDirty())return;/* never blow away something being typed */
   renderTrip()}catch(e){}}
 function pendingCount(){return Object.keys(state.outbox||{}).length}
 async function push(t){t=normalizeTrip(t);t.updated_at=new Date().toISOString();state.trips[t.code]=t;markLocal(t.code);save();const q=state.outbox[t.code];
-  try{let j=await api('/trips/'+t.code,'PUT',forServer(t));adoptServer(t.code,normalizeTrip(j.trip),q);save();repaintTrip(t.code);toast('Saved')}
+  try{let j=await sendTrip(t);adoptServer(t.code,normalizeTrip(j.trip),q);save();repaintTrip(t.code);toast('Saved')}
   catch(e){save();
     if(e.status===401){toast('Saved on this device — sign in to sync it');refreshConfig()}
     else toast(e.offline?'Saved on this device — will sync when back online':'Saved on this device — sync retry pending')}}
@@ -301,7 +323,7 @@ async function flushOutbox(announce=false){let codes=Object.keys(state.outbox||{
   for(const c of codes){let t=state.trips[c];
     if(!t){delete state.outbox[c];continue}
     const q=state.outbox[c];
-    try{let j=await api('/trips/'+c,'PUT',forServer(normalizeTrip(t)));adoptServer(c,normalizeTrip(j.trip),q);sent++}
+    try{let j=await sendTrip(normalizeTrip(t));adoptServer(c,normalizeTrip(j.trip),q);sent++}
     catch(e){if(e.status>=400&&e.status<500&&e.status!==408&&e.status!==429){console.warn('SplitLah: server rejected trip '+c,e.message)}
       /* a dead network means stop; one trip the server dislikes must not starve
          every other trip queued behind it */

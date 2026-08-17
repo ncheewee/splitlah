@@ -9,6 +9,11 @@ const dom=new JSDOM(html,{url:'https://splitlah.example/app/',runScripts:'danger
  w.fetch=async(u,i={})=>{u=String(u);const m=u.match(/\/trips\/([A-Z0-9]{6})$/);
   if(m){const c=m[1];if((i.method||'GET')==='GET'){return server[c]?jr({trip:JSON.parse(JSON.stringify(server[c]))},200):jr({error:'Trip not found'},404)}
    if(i.method==='PUT'){const t=JSON.parse(i.body);t.updated_at=new Date().toISOString();server[c]=t;return jr({trip:JSON.parse(JSON.stringify(t))},200)}}
+  const pm=u.match(/\/trips\/([A-Z0-9]{6})\/patch$/);
+  if(pm&&i.method==='POST'){const c=pm[1];if(!server[c])return jr({error:'Trip not found'},404);
+   const p=JSON.parse(i.body),t=server[c];
+   if(p.expenses){const by={};(t.expenses||[]).forEach(e=>{if(e&&e.id)by[e.id]=e});p.expenses.forEach(e=>{if(e&&e.id)by[e.id]=e});t.expenses=Object.values(by)}
+   t.updated_at=new Date().toISOString();return jr({trip:JSON.parse(JSON.stringify(t))},200)}
   if(/\/restore$/.test(u))return jr({ok:true,token:'123456',tripCount:1},200);
   if(/\/fx\//.test(u))return jr({rate:0.29,source:'test'},200);
   return jr({error:'Not found'},404)};
@@ -18,7 +23,7 @@ const w=dom.window,ev=e=>w.eval(e),st=()=>w.eval('state'),sleep=ms=>new Promise(
 (async()=>{
  await sleep(120);
  console.log('\n[smoke] happy path, fully online');
- ev('state.name="Chee Wee";state.paynowProxy="+6591234567";state.onboarded=true;save()');
+ ev('state.name="Chee Wee";state.paynowProxy="+6591234567";state.onboarded=true;state.config={allowAnonymous:true};save()');
  // create a trip through the real UI path
  ev('openNewTrip()');await sleep(30);
  w.document.getElementById('ntName').value='Kuantan trip';

@@ -96,6 +96,13 @@ function makeDevice(server, opts = {}) {
             catch (e) { return jsonRes({ error: e.message }, e.status || 500); }
           }
         }
+        const pm = u.match(/\/trips\/([A-Z0-9]{6})\/patch$/);
+        if (pm && init.method === 'POST') {
+          const code = pm[1];
+          if (!server.get(code)) return jsonRes({ error: 'Trip not found' }, 404);
+          try { return jsonRes({ trip: server.put(code, JSON.parse(init.body)) }, 200); }
+          catch (e) { return jsonRes({ error: e.message }, e.status || 500); }
+        }
         if (/\/health$/.test(u)) return jsonRes({ ok: true }, 200);
         return jsonRes({ error: 'Not found' }, 404);
       };
@@ -249,8 +256,10 @@ ok('[0] worker and client carry the same merge', !!workerMerge && workerMerge ==
   /* rev CAS actually engages rather than 409-ing forever */
   await cw.ev('push(cur)');
   ok('a plain write succeeds against the CAS', server.get('OYL1X3').rev >= 1, 'rev=' + server.get('OYL1X3').rev);
+  cw.ev('cur.members.u_cw.updatedAt=new Date().toISOString()');
   await cw.ev('push(cur)');
   ok('a second write also succeeds and bumps rev', server.get('OYL1X3').rev >= 2, 'rev=' + server.get('OYL1X3').rev);
+  cw.ev('cur.members.u_cw.updatedAt=new Date().toISOString()');
   server.wedgeRev = true;
   await cw.ev('push(cur)');
   ok('a lost CAS race surfaces as 409 and keeps the write queued', !!cw.st().outbox['OYL1X3']);
@@ -259,8 +268,8 @@ ok('[0] worker and client carry the same merge', !!workerMerge && workerMerge ==
   ok('nothing left stuck in the outbox', Object.keys(cw.st().outbox).length === 0);
 
   /* editing your own profile must not be reverted by the merge */
-  cw.ev('$("setName").value="Chee Wee Ng";$("setPayNow").value="+6592222222"');
-  await cw.ev('saveSettings()');
+  cw.ev('state.name="Chee Wee Ng";state.paynowProxy="+6592222222";cur.members.u_cw.name="Chee Wee Ng";cur.members.u_cw.paynowProxy="+6592222222";cur.members.u_cw.updatedAt=new Date().toISOString()');
+  await cw.ev('push(cur)');
   await sleep(40);
   ok('profile rename reaches the server', (server.get('OYL1X3').members.u_cw || {}).name === 'Chee Wee Ng',
      J((server.get('OYL1X3').members.u_cw || {}).name));
@@ -309,6 +318,29 @@ ok('[0] worker and client carry the same merge', !!workerMerge && workerMerge ==
   await d.ev('flushOutbox(false)');
   ok('the healthy trip synced despite the poisoned one ahead of it',
      server.get('GOODAA').expenses.some(e => e.desc === 'Queued behind the bad one'));
+}
+
+/* [8] A later expense is a patch, not a whole-document PUT */
+{
+  console.log('\n[8] Sparse patch does not resend the trip');
+  const server = makeServer({ OYL1X3: JSON.parse(J(TRIP)) });
+  const cw = makeDevice(server);
+  await sleep(120);
+  const seed = JSON.parse(J(TRIP));
+  seed.rev = 3; seed.syncedAt = '2026-08-01T00:00:00.000Z'; seed.syncedStamp = '2026-08-01T00:00:00.000Z';
+  cw.ev('state.trips["OYL1X3"]=normalizeTrip(' + J(seed) + ');state.claims["OYL1X3"]="u_cw";cur=state.trips["OYL1X3"];save()');
+  const p0 = JSON.parse(cw.ev('JSON.stringify(tripPatch(state.trips["OYL1X3"]))'));
+  ok('a synced trip has an empty patch', cw.ev('patchHasWork(' + J(p0) + ')') === false);
+  cw.ev('cur.expenses.push(' + J(exp('e_new', 'Late kopi', 1.9, 'u_cw')) + ')');
+  const p1 = JSON.parse(cw.ev('JSON.stringify(tripPatch(state.trips["OYL1X3"]))'));
+  ok('patch carries only the new expense', (p1.expenses || []).length === 1 && p1.expenses[0].id === 'e_new', J(p1.expenses));
+  ok('patch does not resend older expenses', !(p1.expenses || []).some(e => e.id === 'e1' || e.id === 'e2'));
+  ok('patch omits members', !p1.members);
+  await cw.ev('push(cur)');
+  await sleep(40);
+  const after = server.get('OYL1X3');
+  ok('server kept the original expenses', after.expenses.some(e => e.id === 'e1') && after.expenses.some(e => e.id === 'e2'));
+  ok('and accepted the new one', after.expenses.some(e => e.id === 'e_new'));
 }
 
 console.log('\n' + (fail ? '>>> FAILED' : '>>> ALL GOOD') + ' — ' + pass + ' passed, ' + fail + ' failed\n');

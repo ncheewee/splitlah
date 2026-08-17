@@ -61,6 +61,19 @@ function makeEnv(opts = {}) {
             server[code] = trip; return jsonRes({ trip }, 200);
           }
         }
+        const pm = u.match(/\/trips\/([A-Z0-9]{6})\/patch$/);
+        if (pm && init.method === 'POST') {
+          const code = pm[1];
+          if (!server[code]) return jsonRes({ error: 'Trip not found' }, 404);
+          const p = JSON.parse(init.body), t = server[code];
+          if (p.expenses) {
+            const by = {}; (t.expenses || []).forEach(e => { if (e && e.id) by[e.id] = e; });
+            p.expenses.forEach(e => { if (e && e.id) by[e.id] = e; });
+            t.expenses = Object.values(by);
+          }
+          t.updated_at = new Date().toISOString();
+          return jsonRes({ trip: JSON.parse(JSON.stringify(t)) }, 200);
+        }
         if (/\/health$/.test(u)) return jsonRes({ ok: true }, 200);
         return jsonRes({ error: 'Not found' }, 404);
       };
