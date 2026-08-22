@@ -49,6 +49,25 @@ function makeEnv(opts = {}) {
                       name: 'Chee Wee', paynowProxy: '', claims: acct.claims, uids: acct.uids }, 200);
         }
         if (/\/auth\/account$/.test(u)) return auth ? jr({ ok: true }, 200) : jr({ error: 'Not signed in' }, 401);
+        if (/\/auth\/me$/.test(u)) {
+          if (!auth) return jr({ error: 'Not signed in' }, 401);
+          const sub = String(auth).replace(/^Bearer sess_/, '');
+          const acct = accounts[sub] || { uids: [], claims: {} };
+          return jr({ ok: true, sub, email: 'me@gmail.com', name: 'Chee Wee', paynowProxy: '',
+                      claims: acct.claims || {}, uids: acct.uids || [] }, 200);
+        }
+        if (/\/auth\/claims$/.test(u)) {
+          if (!auth) return jr({ error: 'Not signed in' }, 401);
+          const sub = String(auth).replace(/^Bearer sess_/, '');
+          const b = JSON.parse(init.body || '{}');
+          const acct = accounts[sub] || (accounts[sub] = { uids: [], claims: {} });
+          if (b.uid && !acct.uids.includes(b.uid)) acct.uids.push(b.uid);
+          for (const [c, m] of Object.entries(b.claims || {})) if (!acct.claims[c]) acct.claims[c] = m;
+          for (const uid of acct.uids)
+            for (const [c, t] of Object.entries(server))
+              if (t.members && t.members[uid] && !acct.claims[c]) acct.claims[c] = uid;
+          return jr({ ok: true, claims: acct.claims, uids: acct.uids, tripCount: Object.keys(acct.claims).length }, 200);
+        }
         const m = u.match(/\/trips\/([A-Z0-9]{6})$/);
         if (m) {
           const code = m[1];
@@ -273,6 +292,36 @@ function makeEnvLastServerHas() { return true; }
   ok('both are visible on the home screen', ev('visibleTrips().length') === 2);
   ok('invite-joined trip resolves to the right member', ev('me(state.trips["OYL1X3"])') === JBMEM);
   ok('self-created trip resolves to the owning uid', ev('me(state.trips["AES5K8"])') === PIXEL);
+}
+
+/* 12b. v67 wall: sign in FIRST, then claim an existing member via invite.
+   The Google account must record that claim immediately. Otherwise a wiped
+   PWA can only restore trips whose member id is already in account.uids —
+   which is exactly how JB Shenanigans disappeared. */
+{
+  console.log('\n[12b] Invite join while signed in is written to the account');
+  const JBMEM = 'u_85c720e1-f2df-4467-881c-37e6931ed900';
+  const trip = { code: 'OYL1X3', name: 'JB Shenanigans', currency: 'SGD', ownerId: JBMEM,
+    members: { [JBMEM]: { name: 'Chee Wee' }, m_jinks: { name: 'Jinks' } }, expenses: [], settlements: [] };
+  const server = { OYL1X3: JSON.parse(J(trip)) };
+  const accounts = { sub_1: { uids: [], claims: {} } };
+  const a = makeEnv({ server, accounts, config: { ssoOnboarding: true } });
+  await sleep(120);
+  await a.ev('completeSignIn("GOOD")'); await sleep(150);
+  ok('signed-in account does not yet have JB', !accounts.sub_1.claims.OYL1X3);
+  a.ev('pendingJoin=' + J(trip));
+  a.ev('claimJoin("' + JBMEM + '")');
+  await sleep(200);
+  ok('device stored the invite claim', a.st().claims.OYL1X3 === JBMEM);
+  ok('account stored the invite claim without a second sign-in', accounts.sub_1.claims.OYL1X3 === JBMEM,
+     J(accounts.sub_1.claims));
+
+  const b = makeEnv({ server, accounts, config: { ssoOnboarding: true } });
+  await sleep(120);
+  ok('second device starts empty', Object.keys(b.st().trips).length === 0);
+  await b.ev('completeSignIn("GOOD")'); await sleep(200);
+  ok('second device restored JB from the account, no invite link needed', !!b.st().trips.OYL1X3);
+  ok('restored as the claimed member', b.ev('me(state.trips["OYL1X3"])') === JBMEM);
 }
 
 /* 13. Redirect fallback for browsers where the GIS callback never fires. */

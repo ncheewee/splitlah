@@ -62,7 +62,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 <script>
 (function(){const th=localStorage.getItem('sl_theme');const fs=localStorage.getItem('sl_fs');if(th==='light')document.body.classList.add('light');if(fs)document.documentElement.style.setProperty('--fs',fs+'px')})();
-const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=76;
+const API_DEFAULT='https://splitlah-api.ncheewee.workers.dev',LS='sl_codex_v1',LS_BAK='sl_codex_v1_bak',APP_VERSION=77;
 document.addEventListener('DOMContentLoaded',()=>{document.querySelectorAll('.vTag').forEach(el=>el.textContent='v'+APP_VERSION)});
 const CATS=['🍜 Food','🏨 Stay','🚌 Transport','🎡 Activities','🛍 Shopping','🌃 Nightlife','💊 Health','★ Other'];
 let dashChart='flow',expCat=7;
@@ -342,7 +342,47 @@ async function pull(c){let j=await api('/trips/'+c),t=normalizeTrip(j.trip);
 function go(v){document.body.classList.toggle('gated',v==='gate');document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id===v));scrollTo(0,0)}
 function pushNav(s){if(history.state&&JSON.stringify(history.state)===JSON.stringify(s))return;history.pushState(s,'')}
 function goHome(hist=true){if(loginRequired())return showAuthGate();cur=null;go('home');renderHome();if(hist)pushNav({view:'home'})}
-function me(t=cur){return (t&&state.claims?.[t.code])||state.uid}
+function me(t=cur){
+  if(!t)return state.uid;
+  let c=state.claims&&state.claims[t.code];
+  if(c&&t.members&&t.members[c])return c;
+  let ac=state.auth&&state.auth.claims&&state.auth.claims[t.code];
+  if(ac&&t.members&&t.members[ac])return ac;
+  if(t.members&&t.members[state.uid])return state.uid;
+  let uids=(state.auth&&state.auth.uids)||[];
+  for(const u of uids) if(t.members&&t.members[u])return u;
+  return c||state.uid}
+function claimBundle(){
+  let b=Object.assign({},state.claims||{});
+  if(state.auth&&state.auth.claims) Object.keys(state.auth.claims).forEach(c=>{if(!b[c])b[c]=state.auth.claims[c]});
+  Object.values(state.trips||{}).forEach(t=>{
+    if(!t||!t.code||t.deletedAt)return;
+    if(b[t.code]&&t.members&&t.members[b[t.code]])return;
+    if(t.members&&t.members[state.uid])b[t.code]=state.uid;
+  });
+  return b}
+function rememberAccount(r){
+  if(!state.auth)return;
+  if(r&&r.uids)state.auth.uids=r.uids;
+  if(r&&r.claims)state.auth.claims=r.claims;
+  for(const [code,memberId] of Object.entries((r&&r.claims)||{})){
+    if(!state.claims[code])state.claims[code]=memberId}}
+async function restoreAccountTrips(){
+  if(!signedIn())return 0;
+  try{
+    let r=await api('/auth/me');
+    rememberAccount(r);
+    let added=0;
+    for(const [code,memberId] of Object.entries(r.claims||{})){
+      if(!state.trips[code]){try{await pull(code);if(state.trips[code]&&state.trips[code].members[memberId])added++}catch(e){}}}
+    save();
+    if(added){if(!cur)renderHome();toast(added+' trip'+(added===1?'':'s')+' restored')}
+    return added}
+  catch(e){return 0}}
+async function syncAccountClaims(){
+  if(!signedIn())return;
+  try{rememberAccount(await api('/auth/claims','POST',{uid:state.uid,claims:claimBundle()}));save()}
+  catch(e){/* offline or stale session — local claims stay */}}
 function visibleTrips(){return Object.values(state.trips).filter(t=>!t.deletedAt&&t.members&&t.members[me(t)])}
 function tripStatus(t){return t.status||'active'}
 function isClosed(t){let s=tripStatus(t||cur);return s==='closed'||s==='archived'}
@@ -353,7 +393,7 @@ function tripCard(t,muted=false){let total=tripTotal(t),ms=memberList(t),st=trip
 function shareTripCard(code){cur=normalizeTrip(state.trips[code]);shareTrip();}function editTripCard(code){cur=normalizeTrip(state.trips[code]);openTripEdit();}function manageTripCard(code){cur=normalizeTrip(state.trips[code]);openTripManage();}function renderHome(){ if(loginRequired())return showAuthGate(); $('hello').textContent='Hi, '+(state.name||'there'); let all=visibleTrips(),install=installPrompt&&!state.installDismissed?`<div class="card"><div class="row"><div class="grow"><div class="screenTitle">Install SplitLah</div><div class="muted">Add it to your home screen for a native app feel.</div></div><button class="btn" onclick="installApp()">Install</button><button class="btn ghost mini" onclick="dismissInstall()">Later</button></div></div>`:'';let active=all.filter(t=>tripStatus(t)==='active'),closed=all.filter(t=>tripStatus(t)==='closed'),archived=all.filter(t=>tripStatus(t)==='archived');let out=install;if(!all.length){out+='<div class="card muted">No trips yet. Create a trip to get started.</div><button class="btn ghost" style="width:100%;margin-top:8px" onclick="openRestoreEntry()">Already joined a trip? Restore with code</button>'}else{out+=active.map(t=>tripCard(t,false)).join('');out+=closed.map(t=>tripCard(t,true)).join('');if(archived.length){out+=`<button class="archivedToggle" onclick="toggleShowArchived()">${state.showArchived?'▾':'▸'} Archived (${archived.length})</button>`;if(state.showArchived)out+=archived.map(t=>tripCard(t,true)).join('')}}$('tripList').innerHTML=out}
 function openNewTrip(){modal(`<h2>New trip</h2><input class="field" id="ntName" placeholder="Weekend trip"><div style="height:10px"></div>${selectWrap('ntCur',ccyOptions(),'',true)}<div style="height:10px"></div><button class="btn" style="width:100%" onclick="createTrip()">Create trip</button>`);setTimeout(()=>{const s=document.querySelector('#modal .sheet');if(s)s.style.overflow='visible';},15);}
 function createTrip(){let name=$('ntName').value.trim();if(!name)return toast('Trip name needed');if(!state.name)return openSettings(true);
-  if(createNeedsAuth()){closeModal();return openSignIn('Sign in to create a trip. Your existing trips are unaffected.')}let c=code(),id=state.uid;let t={id:uid(),code:c,name,currency:$('ntCur').value.trim().toUpperCase()||'SGD',ownerId:id,members:{[id]:{name:state.name,avatarColor:colors[0],paynowProxy:normalizePayNowProxy(state.paynowProxy)}},expenses:[],settlements:[],updated_at:new Date().toISOString()};closeModal();push(t);openTrip(c,'members');setTimeout(promptAddFirstMember,400)}
+  if(createNeedsAuth()){closeModal();return openSignIn('Sign in to create a trip. Your existing trips are unaffected.')}let c=code(),id=state.uid;let t={id:uid(),code:c,name,currency:$('ntCur').value.trim().toUpperCase()||'SGD',ownerId:id,members:{[id]:{name:state.name,avatarColor:colors[0],paynowProxy:normalizePayNowProxy(state.paynowProxy)}},expenses:[],settlements:[],updated_at:new Date().toISOString()};closeModal();push(t);if(signedIn())syncAccountClaims();openTrip(c,'members');setTimeout(promptAddFirstMember,400)}
 function promptAddFirstMember(){if(!cur||!isOwner()||memberList().length>1)return;modal('<div style="text-align:center;padding:8px 0"><div style="font-size:2rem;margin-bottom:10px">👥</div><h2 style="margin:0 0 8px">Add your travel mates</h2><p style="color:var(--muted);margin:0 0 16px;font-size:.9rem">Add everyone splitting expenses on this trip. You can find the add form in the Members tab below.</p><button class="btn" style="width:100%;margin-bottom:8px" onclick="closeModal()">Got it, let\'s add them</button></div>',true);}
 function openJoin(prefill=''){modal(`<h2>Join code</h2><input class="field" id="joinCode" placeholder="ABC123" maxlength="6" value="${esc(prefill)}"><div style="height:10px"></div><button class="btn" style="width:100%" onclick="joinTrip()">Join</button>`)}
 async function joinTrip(){let c=$('joinCode').value.trim().toUpperCase();if(!c)return;openInvite(c)}
@@ -362,9 +402,9 @@ async function openInvite(c,mid=''){let code=String(c||'').toUpperCase();if(!cod
   try{let t=await pull(code);if(t.members[me(t)]){state.pendingInvite=null;save();closeModal();openTrip(t.code);return}pendingJoin=t;showJoinChoice(t,mid)}catch(e){if(e.tombstone||e.status===404){state.pendingInvite=null;save()}toast(e.offline?'No connection — try again when back online':e.message)}}
 function showJoinChoice(t,mid=''){let suggested=mid&&t.members[mid]?`<div class="card"><div class="k">Suggested</div><div class="expense row">${avFrom(t.members[mid])}<div class="grow"><b>${esc(t.members[mid].name)}</b><div class="muted">Pre-selected from invite link</div></div><button class="btn" onclick="claimJoin('${esc(mid)}')">Continue</button></div></div>`:'',rows=memberList(t).map(([id,m])=>`<div class="expense row">${avFrom(m)}<div class="grow"><b>${esc(m.name)}</b><div class="muted">${m.paynowProxy?'PayNow set':'Member'}</div></div><button class="btn ghost" onclick="claimJoin('${esc(id)}')">This is me</button></div>`).join('');modal(`<h2>${esc(t.name)}</h2><p class="muted">Who are you? Pick yourself if you are already listed, or join as a new member.</p><div class="card"><div class="muted">Started by ${esc(ownerName(t))} · ${memberList(t).length} members</div></div>${suggested}<div class="card">${rows}</div><button class="btn" style="width:100%" onclick="joinAsNew()">I'm not listed</button>`)}
 function avFrom(m){return `<div class="av" style="background:${m.avatarColor||colors[0]}">${esc(initials(m.name))}</div>`}
-function claimJoin(id){if(!pendingJoin||!pendingJoin.members[id])return;let m=pendingJoin.members[id],code=pendingJoin.code;state.claims[code]=id;state.trips[code]=normalizeTrip(pendingJoin);state.pendingInvite=null;if(!state.name||state.name==='there'||state.name!==m.name)state.name=m.name||state.name;if(!state.paynowProxy&&m.paynowProxy)state.paynowProxy=m.paynowProxy;state.onboarded=true;save();closeModal();openTrip(code);setTimeout(()=>{if(!normalizePayNowProxy(m.paynowProxy||state.paynowProxy))openSettings(false)},250);setTimeout(()=>offerInstallRestore(code,id),900);toast('Joined as '+m.name)}
+function claimJoin(id){if(!pendingJoin||!pendingJoin.members[id])return;let m=pendingJoin.members[id],code=pendingJoin.code;state.claims[code]=id;state.trips[code]=normalizeTrip(pendingJoin);state.pendingInvite=null;if(!state.name||state.name==='there'||state.name!==m.name)state.name=m.name||state.name;if(!state.paynowProxy&&m.paynowProxy)state.paynowProxy=m.paynowProxy;state.onboarded=true;save();closeModal();openTrip(code);if(signedIn())syncAccountClaims();setTimeout(()=>{if(!normalizePayNowProxy(m.paynowProxy||state.paynowProxy))openSettings(false)},250);setTimeout(()=>offerInstallRestore(code,id),900);toast('Joined as '+m.name)}
 function joinAsNew(){if(!pendingJoin)return;modal(`<h2>Join ${esc(pendingJoin.name)}</h2><label class="muted">Your name</label><input class="field" id="joinName" value="${esc(state.name||'')}" placeholder="Your name"><div style="height:10px"></div><label class="muted">PayNow proxy</label><input class="field" id="joinPayNow" value="${esc(state.paynowProxy||'')}" placeholder="+65 mobile or NRIC"><div style="height:10px"></div><button class="btn" style="width:100%" onclick="confirmJoinAsNew()">Join trip</button>`)}
-async function confirmJoinAsNew(){let t=pendingJoin;if(!t)return;let n=($('joinName')?.value||state.name||'').trim();if(!n)return toast('Name needed');state.name=n;state.paynowProxy=normalizePayNowProxy($('joinPayNow')?.value||state.paynowProxy||'');state.onboarded=true;t.members[state.uid]={name:state.name,avatarColor:colors[memberList(t).length%colors.length],paynowProxy:state.paynowProxy,updatedAt:new Date().toISOString()};state.claims[t.code]=state.uid;state.trips[t.code]=normalizeTrip(t);state.pendingInvite=null;save();await push(t);closeModal();openTrip(t.code);setTimeout(()=>offerInstallRestore(t.code,state.uid),900)}
+async function confirmJoinAsNew(){let t=pendingJoin;if(!t)return;let n=($('joinName')?.value||state.name||'').trim();if(!n)return toast('Name needed');state.name=n;state.paynowProxy=normalizePayNowProxy($('joinPayNow')?.value||state.paynowProxy||'');state.onboarded=true;t.members[state.uid]={name:state.name,avatarColor:colors[memberList(t).length%colors.length],paynowProxy:state.paynowProxy,updatedAt:new Date().toISOString()};state.claims[t.code]=state.uid;state.trips[t.code]=normalizeTrip(t);state.pendingInvite=null;save();await push(t);if(signedIn())await syncAccountClaims();closeModal();openTrip(t.code);setTimeout(()=>offerInstallRestore(t.code,state.uid),900)}
 function signOutRowHtml(){
   if(!signedIn())return `<button class='btn ghost' style='width:100%;margin-top:10px' onclick='closeModal();openSignIn()'>Sign in with Google</button>`;
   let a=state.auth||{},email=a.email||'',label=state.name||email||'Google';
@@ -454,11 +494,11 @@ function handleAuthRedirect(){
 async function completeSignIn(idToken){
   if(!idToken)return toast('Sign-in cancelled');
   toast('Signing in…');
-  let bundle=Object.fromEntries(visibleTrips().map(t=>[t.code,me(t)]));
+  let bundle=claimBundle();
   try{
     let r=await api('/auth/google','POST',{idToken,uid:state.uid,claims:bundle,name:state.name,paynowProxy:state.paynowProxy});
     let pic='';try{pic=decodeJwtPayload(idToken).picture||''}catch(e){}
-    state.auth={sessionToken:r.sessionToken,sub:r.sub,email:r.email,signedInAt:Date.now(),picture:pic};
+    state.auth={sessionToken:r.sessionToken,sub:r.sub,email:r.email,signedInAt:Date.now(),picture:pic,uids:r.uids||[],claims:r.claims||{}};
     if(r.email)state.authHint=r.email;
     if(!state.name&&r.name)state.name=r.name;
     if(!state.paynowProxy&&r.paynowProxy)state.paynowProxy=normalizePayNowProxy(r.paynowProxy);
@@ -781,7 +821,7 @@ else if(loginRequired()){
 else if(restoreParam){let _rt=restoreParam;try{let _u=new URL(location.href);_u.searchParams.delete('restore');history.replaceState({},'',_u.pathname+(_u.search||'')+_u.hash)}catch(e){}setTimeout(()=>applyRestoreToken(_rt),150)}else if(adminParam==='feedback')setTimeout(openAdminFeedback,100);else if(adminParam==='summary')setTimeout(openAdminSummary,100);else if(adminParam==='dashboard')setTimeout(openAdminDashboard,100);else if(joinParam)setTimeout(()=>openInvite(joinParam.toUpperCase(),memberParam||''),100);else if(state.pendingInvite?.code)setTimeout(()=>openInvite(state.pendingInvite.code,state.pendingInvite.memberId||''),100);else if(!state.onboarded)setTimeout(()=>openOnboarding(),100);
 setInterval(()=>{if(cur&&!$('modal').classList.contains('on')&&!activeFormDirty())refreshTrip(true)},12000);
 /* v57: keep unsent trips moving — retry on reconnect, on focus, and on a slow timer */
-setTimeout(()=>{refreshConfig();flushOutbox(false)},1500);
+setTimeout(()=>{refreshConfig();flushOutbox(false);if(signedIn())restoreAccountTrips().then(()=>syncAccountClaims())},1500);
 setInterval(()=>{if(pendingCount())flushOutbox(false)},20000);
 window.addEventListener('online',()=>{if(pendingCount())flushOutbox(true)});
 document.addEventListener('visibilitychange',()=>{if(!document.hidden&&pendingCount())flushOutbox(false)});

@@ -632,6 +632,21 @@ export default {
                       paynowProxy: user.paynowProxy, claims: user.claims || {}, uids: user.uids || [] });
       }
 
+      /* Join-while-signed-in never re-runs POST /auth/google, so invite claims
+         used to live only on the device. A wiped PWA then could not restore
+         trips whose member id is not one of the account uids (JB Shenanigans). */
+      if (url.pathname === '/auth/claims' && request.method === 'POST') {
+        const session = await sessionFrom(request, env);
+        if (!session) return json({ error: 'Not signed in' }, 401);
+        const user = await loadUser(sql, session.sub);
+        if (!user) return json({ error: 'Account not found' }, 404);
+        const payload = await request.json().catch(() => ({}));
+        const merged = await adoptAndMerge(sql, user, cleanText(payload.uid, 80), payload.claims);
+        await saveUser(sql, session.sub, merged);
+        return json({ ok: true, claims: merged.claims || {}, uids: merged.uids || [],
+                      tripCount: Object.keys(merged.claims || {}).length });
+      }
+
       /* Play requires in-app account deletion. Trips are shared data and are
          deliberately NOT deleted — only the account record linking them. */
       if (url.pathname === '/auth/account' && request.method === 'DELETE') {
